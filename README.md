@@ -12,9 +12,9 @@
 
 **X-Ray for Twitter** is a powerful Chrome extension that instantly reveals where Twitter/X users are tweeting from and what device they're using. With a simple click, discover:
 
-*   **User Location** - See where they're based (from their public profile)
-*   **Device Platform** - Know if they're on iOS, Android, or Web
-*   **Country Flags** - Visual representation with country flags
+*   <img src="assets/pin.svg" width="16" height="16" align="center"> **User Location** - See where they're based (from their public profile)
+*   <img src="assets/apple.svg" width="14" height="14" align="center"> **Device Platform** - Know if they're on iOS, Android, or Web
+*   <img src="assets/globe.svg" width="16" height="16" align="center"> **Country Flags** - Visual representation with country flags
 *   **Quick Copy** - One-click copy to clipboard
 
 **100% FREE. Unlimited usage. No subscriptions. No tracking.**
@@ -54,7 +54,7 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 
 ## How It Works
 
-1.  **Browse Twitter/X normally** - Extension adds a small location icon next to usernames
+1.  **Browse Twitter/X normally** - Extension adds a small location icon <img src="assets/pin.svg" width="16" height="16" align="center"> next to usernames
 2.  **Click the location icon** - Instantly loads the user's public location data
 3.  **View the info** - See their location with country flag and platform (iOS/Android/Web)
 4.  **Copy if needed** - Click the location pill to copy to clipboard
@@ -135,7 +135,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ### Basic Usage
 1.  Go to [twitter.com](https://twitter.com) or [x.com](https://x.com)
-2.  Look for the location icon next to any username (or near the Grok/More buttons)
+2.  Look for the location icon <img src="assets/pin.svg" width="16" height="16" align="center"> next to any username (or near the Grok/More buttons)
 3.  Click it to reveal location and platform
 4.  Click the location pill to copy to clipboard
 
@@ -181,16 +181,16 @@ X-Ray recognizes **150+ countries** with automatic flag detection:
 *   Africa
 *   Oceania
 
-If a country isn't recognized, a globe icon is shown instead.
+If a country isn't recognized, a globe icon <img src="assets/globe.svg" width="16" height="16" align="center"> is shown instead.
 
 ---
 
 ## Platform Detection
 
 Automatically identifies:
-*   **iOS** - iPhone, iPad, App Store
-*   **Android** - Android devices, Play Store
-*   **Web** - Desktop and mobile web browsers
+*   <img src="assets/apple.svg" width="14" height="14" align="center"> **iOS** - iPhone, iPad, App Store
+*   <img src="assets/android.svg" width="16" height="16" align="center"> **Android** - Android devices, Play Store
+*   <img src="assets/web.svg" width="16" height="16" align="center"> **Web** - Desktop and mobile web browsers
 
 ---
 
