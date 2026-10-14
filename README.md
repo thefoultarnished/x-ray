@@ -8,7 +8,7 @@
 
 ---
 
-## <img src="screenshots/icons/camera.svg" width="20" height="20" align="absmiddle"> Screenshots
+## <img src="screenshots/icons/camera.svg" width="18" height="18" align="baseline"> Screenshots
 
 <div align="center">
   <img src="screenshots/s1.png" alt="X-Ray Extension in Action" width="800">
@@ -20,7 +20,7 @@
 
 ---
 
-## <img src="screenshots/icons/info.svg" width="20" height="20" align="absmiddle"> What is X-Ray?
+## <img src="screenshots/icons/info.svg" width="18" height="18" align="baseline"> What is X-Ray?
 
 **X-Ray for Twitter** is a powerful Chrome extension that instantly reveals where Twitter/X users are tweeting from and what device they're using. With a simple click, discover:
 
@@ -33,7 +33,7 @@
 
 ---
 
-## <img src="screenshots/icons/zap.svg" width="20" height="20" align="absmiddle"> Features
+## <img src="screenshots/icons/zap.svg" width="18" height="18" align="baseline"> Features
 
 ### Click-to-Reveal Design
 Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to-reveal** system. This protects your account from Twitter/X's aggressive rate limits while giving you full control over what data you fetch.
@@ -64,7 +64,7 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 
 ---
 
-## <img src="screenshots/icons/cursor.svg" width="20" height="20" align="absmiddle"> How It Works
+## <img src="screenshots/icons/cursor.svg" width="18" height="18" align="baseline"> How It Works
 
 1.  **Browse Twitter/X normally** - Extension adds a small location icon <img src="screenshots/icons/pin.svg" width="16" height="16" align="absmiddle"> next to usernames
 2.  **Click the location icon** - Instantly loads the user's public location data
@@ -75,7 +75,7 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 
 ---
 
-## <img src="screenshots/icons/target.svg" width="20" height="20" align="absmiddle"> Why Click-to-Reveal?
+## <img src="screenshots/icons/target.svg" width="18" height="18" align="baseline"> Why Click-to-Reveal?
 
 ### The Problem with Auto-Loading
 Many extensions automatically fetch data for every user you see. This causes:
@@ -93,7 +93,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## <img src="screenshots/icons/search.svg" width="20" height="20" align="absmiddle"> Use Cases
+## <img src="screenshots/icons/search.svg" width="18" height="18" align="baseline"> Use Cases
 
 *   <img src="screenshots/icons/search.svg" width="16" height="16" align="absmiddle"> **Researchers** - Analyze geographic distribution of discussions
 *   <img src="screenshots/icons/newspaper.svg" width="16" height="16" align="absmiddle"> **Journalists** - Verify user locations for fact-checking
@@ -104,7 +104,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## <img src="screenshots/icons/shield.svg" width="20" height="20" align="absmiddle"> Privacy & Security
+## <img src="screenshots/icons/shield.svg" width="18" height="18" align="baseline"> Privacy & Security
 
 ### What It Does Not Do
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No tracking or analytics
@@ -125,7 +125,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## <img src="screenshots/icons/download.svg" width="20" height="20" align="absmiddle"> Installation
+## <img src="screenshots/icons/download.svg" width="18" height="18" align="baseline"> Installation
 
 ### From Chrome Web Store (Recommended)
 1.  Visit the [Chrome Web Store](#) (link coming soon)
@@ -143,7 +143,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## <img src="screenshots/icons/pin.svg" width="20" height="20" align="absmiddle"> Usage
+## <img src="screenshots/icons/pin.svg" width="18" height="18" align="baseline"> Usage
 
 ### Basic Usage
 1.  Go to [twitter.com](https://twitter.com) or [x.com](https://x.com)
@@ -160,7 +160,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## <img src="screenshots/icons/code.svg" width="20" height="20" align="absmiddle"> Technical Details
+## <img src="screenshots/icons/code.svg" width="18" height="18" align="baseline"> Technical Details
 
 ### Built With
 *   **Manifest V3** - Latest Chrome extension standard
@@ -183,7 +183,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## <img src="screenshots/icons/globe-blue.svg" width="20" height="20" align="absmiddle"> Supported Countries
+## <img src="screenshots/icons/globe-blue.svg" width="18" height="18" align="baseline"> Supported Countries
 
 X-Ray recognizes **150+ countries** with automatic flag detection:
 *   North America
@@ -197,7 +197,7 @@ If a country isn't recognized, a globe icon <img src="screenshots/icons/globe.sv
 
 ---
 
-## <img src="screenshots/icons/smartphone.svg" width="20" height="20" align="absmiddle"> Platform Detection
+## <img src="screenshots/icons/smartphone.svg" width="18" height="18" align="baseline"> Platform Detection
 
 Automatically identifies:
 *   <img src="screenshots/icons/apple.svg" width="14" height="14" align="absmiddle"> **iOS** - iPhone, iPad, App Store
@@ -206,7 +206,7 @@ Automatically identifies:
 
 ---
 
-## <img src="screenshots/icons/alert.svg" width="20" height="20" align="absmiddle"> Important Notes
+## <img src="screenshots/icons/alert.svg" width="18" height="18" align="baseline"> Important Notes
 
 ### Rate Limits
 Twitter/X has strict rate limits. X-Ray's click-to-reveal design protects you, but:
@@ -229,7 +229,7 @@ This extension accesses publicly available information. However:
 
 ---
 
-## <img src="screenshots/icons/git-branch.svg" width="20" height="20" align="absmiddle"> Contributing
+## <img src="screenshots/icons/git-branch.svg" width="18" height="18" align="baseline"> Contributing
 
 Contributions are welcome! Feel free to:
 *   Report bugs
@@ -239,7 +239,7 @@ Contributions are welcome! Feel free to:
 
 ---
 
-## <img src="screenshots/icons/heart.svg" width="20" height="20" align="absmiddle"> Acknowledgments
+## <img src="screenshots/icons/heart.svg" width="18" height="18" align="baseline"> Acknowledgments
 
 *   Country flags provided by [FlagCDN](https://flagcdn.com)
 *   Icons designed with love
@@ -247,7 +247,7 @@ Contributions are welcome! Feel free to:
 
 ---
 
-## <img src="screenshots/icons/star.svg" width="20" height="20" align="absmiddle"> Why X-Ray?
+## <img src="screenshots/icons/star.svg" width="18" height="18" align="baseline"> Why X-Ray?
 
 *   **100% Free** - No premium tiers, no paywalls
 *   **Unlimited** - Use as much as you want
