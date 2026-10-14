@@ -169,6 +169,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ### Permissions Explained
 *   **`declarativeNetRequest`** - Lets the profile's About page load in a hidden frame by removing X's "don't show in a frame" setting for that page only; all of X's other protections stay on
+*   **`storage`** - Keeps the locations you looked up in X-Ray's own storage on your device for 90 days, where X and other websites can't read them
 *   **`host_permissions`** - Only works on x.com and twitter.com, no access to other sites
 
 ### How It Works Technically

@@ -367,47 +367,91 @@ if (window === window.top) {
   const NOT_AVAILABLE_TEXT = 'Not available';
   const LOOKUP_TIMEOUT_MS = 10000;
   const NOT_AVAILABLE_MS = 3000;
-  const CACHE_KEY = 'x_location_cache';
+  const SAVED_PREFIX = 'loc:';
+  // Where versions up to 1.5 kept results: inside x.com's own storage, readable by X.
+  const OLD_CACHE_KEY = 'x_location_cache';
+  // Set once the old results were moved, so anything planted there later is never imported.
+  const MOVED_OLD_RESULTS_KEY = 'movedOldResults';
   const CACHE_DURATION = 90 * 24 * 60 * 60 * 1000;
   const MAX_SAVED_RESULTS = 10000;
+  const HANDLE_PATTERN = /^[A-Za-z0-9_]{1,15}$/;
 
-  function readSavedResults() {
+  const MAX_TEXT_LENGTH = 100;
+  // Locations and app names must be short text; anything else from X or storage counts as missing.
+  const isText = (value) => value == null || (typeof value === 'string' && value.length <= MAX_TEXT_LENGTH);
+  const asText = (value) => (typeof value === 'string' && value.length <= MAX_TEXT_LENGTH ? value : '');
+
+  const isUsable = (entry, now) =>
+    Boolean(entry) && now - entry.timestamp < CACHE_DURATION && isText(entry.loc) && isText(entry.src);
+
+  // After the extension is updated or reloaded, this old tab can no longer reach its storage.
+  function savedStore() {
+    return chrome.runtime?.id ? chrome.storage.local : null;
+  }
+
+  async function moveOldSavedResults(store, now) {
+    let old = null;
     try {
-      const saved = JSON.parse(localStorage.getItem(CACHE_KEY));
-      return saved && typeof saved === 'object' ? saved : {};
+      old = JSON.parse(localStorage.getItem(OLD_CACHE_KEY));
+    } catch {
+      // Unreadable old data is simply dropped below.
+    }
+    const moved = {};
+    if (old && typeof old === 'object') {
+      for (const [handle, entry] of Object.entries(old)) {
+        if (HANDLE_PATTERN.test(handle) && isUsable(entry, now)) {
+          moved[SAVED_PREFIX + handle] = { loc: entry.loc, src: entry.src, timestamp: entry.timestamp };
+        }
+      }
+    }
+    // Never overwrite a result that is already in the extension's storage.
+    const existing = await store.get(Object.keys(moved));
+    for (const key of Object.keys(existing)) delete moved[key];
+    if (Object.keys(moved).length) await store.set(moved);
+  }
+
+  async function loadSavedResults() {
+    const now = Date.now();
+    try {
+      const store = savedStore();
+      if (!store) return;
+      const { [MOVED_OLD_RESULTS_KEY]: alreadyMoved } = await store.get(MOVED_OLD_RESULTS_KEY);
+      if (!alreadyMoved) {
+        await moveOldSavedResults(store, now);
+        await store.set({ [MOVED_OLD_RESULTS_KEY]: true });
+      }
+      localStorage.removeItem(OLD_CACHE_KEY);
+      for (const [key, entry] of Object.entries(await store.get(null))) {
+        if (key.startsWith(SAVED_PREFIX) && isUsable(entry, now)) {
+          locationMap[key.slice(SAVED_PREFIX.length)] = { loc: entry.loc, src: entry.src };
+        }
+      }
     } catch (e) {
       console.warn('[X-Ray] Could not read saved locations:', e);
-      return {};
     }
   }
 
-  const isFresh = (entry, now) => Boolean(entry) && now - entry.timestamp < CACHE_DURATION;
-
-  {
-    const now = Date.now();
-    for (const [handle, entry] of Object.entries(readSavedResults())) {
-      if (isFresh(entry, now)) locationMap[handle] = { loc: entry.loc, src: entry.src };
-    }
+  // Drops results older than 90 days and, beyond 10,000, the oldest ones. Other extension data is left alone.
+  async function pruneSavedResults(store, now) {
+    const saved = Object.entries(await store.get(null)).filter(([key]) => key.startsWith(SAVED_PREFIX));
+    const usable = saved.filter(([, entry]) => isUsable(entry, now)).sort((a, b) => b[1].timestamp - a[1].timestamp);
+    const drop = [...saved.filter(([, entry]) => !isUsable(entry, now)), ...usable.slice(MAX_SAVED_RESULTS)];
+    if (drop.length) await store.remove(drop.map(([key]) => key));
   }
 
-  function saveToCache(handle, loc, src) {
+  async function saveToCache(handle, loc, src) {
     locationMap[handle] = { loc, src };
     const now = Date.now();
-    // Re-read before writing so results saved by other X tabs are kept, each with its own date.
-    const saved = readSavedResults();
-    saved[handle] = { loc, src, timestamp: now };
-    const kept = Object.entries(saved)
-      .filter(([, entry]) => isFresh(entry, now))
-      .sort((a, b) => b[1].timestamp - a[1].timestamp)
-      .slice(0, MAX_SAVED_RESULTS);
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(Object.fromEntries(kept)));
+      const store = savedStore();
+      if (!store) return;
+      // One entry per account, so two X tabs saving at once never overwrite each other.
+      await store.set({ [SAVED_PREFIX + handle]: { loc, src, timestamp: now } });
+      await pruneSavedResults(store, now);
     } catch (e) {
       console.warn('[X-Ray] Could not save location:', e);
     }
   }
-
-  const HANDLE_PATTERN = /^[A-Za-z0-9_]{1,15}$/;
 
   // Only answers from our own hidden lookup page, about the account being looked up, are trusted.
   function isLookupAnswer(event) {
@@ -427,7 +471,8 @@ if (window === window.top) {
     if (!isLookupAnswer(event)) return;
     // Use the name as written on the page, so the pills for this account are found.
     const handle = busyHandle;
-    const { location, source } = event.data;
+    const location = asText(event.data.location);
+    const source = asText(event.data.source);
 
     saveToCache(handle, location, source);
     updateToLocationText(handle, location, source);
@@ -576,45 +621,54 @@ if (window === window.top) {
 
     function processTweets() {
       document.querySelectorAll('article[data-testid="tweet"]').forEach((article) => {
-        if (article.querySelector('.loc-btn') || article.querySelector('.loc-pill')) return;
-
-        const userLink = article.querySelector('[data-testid="User-Name"] a[href^="/"]');
-        if (!userLink) return;
-        const handle = userLink.getAttribute('href').replace('/', '');
-
-        const caret = article.querySelector('[data-testid="caret"]');
-        const more = article.querySelector('div[aria-label="More"]');
-
-        const targetNode = caret || more;
-
-        if (!targetNode) return;
-
-        const btn = document.createElement('div');
-        btn.dataset.handle = handle;
-
-        if (locationMap[handle]) {
-          renderPill(btn, locationMap[handle].loc, locationMap[handle].src);
-        } else {
-          btn.className = 'loc-btn';
-          btn.innerHTML = ICONS.PIN;
-
-          btn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            tooltip.style.display = 'none';
-            queueRequest(handle);
-          };
-
-          btn.onmouseenter = () => showTooltip(btn, 'Get Location & App Store');
-          btn.onmouseleave = () => {
-            tooltip.style.display = 'none';
-          };
-        }
-
-        if (targetNode.parentNode) {
-          targetNode.parentNode.insertBefore(btn, targetNode);
+        // One broken post must not stop the others from getting their pin.
+        try {
+          addLocationButton(article);
+        } catch (e) {
+          console.warn('[X-Ray] Could not add the location button to a post:', e);
         }
       });
+    }
+
+    function addLocationButton(article) {
+      if (article.querySelector('.loc-btn') || article.querySelector('.loc-pill')) return;
+
+      const userLink = article.querySelector('[data-testid="User-Name"] a[href^="/"]');
+      if (!userLink) return;
+      const handle = userLink.getAttribute('href').replace('/', '');
+
+      const caret = article.querySelector('[data-testid="caret"]');
+      const more = article.querySelector('div[aria-label="More"]');
+
+      const targetNode = caret || more;
+
+      if (!targetNode) return;
+
+      const btn = document.createElement('div');
+      btn.dataset.handle = handle;
+
+      if (locationMap[handle]) {
+        renderPill(btn, locationMap[handle].loc, locationMap[handle].src);
+      } else {
+        btn.className = 'loc-btn';
+        btn.innerHTML = ICONS.PIN;
+
+        btn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          tooltip.style.display = 'none';
+          queueRequest(handle);
+        };
+
+        btn.onmouseenter = () => showTooltip(btn, 'Get Location & App Store');
+        btn.onmouseleave = () => {
+          tooltip.style.display = 'none';
+        };
+      }
+
+      if (targetNode.parentNode) {
+        targetNode.parentNode.insertBefore(btn, targetNode);
+      }
     }
 
     const observer = new MutationObserver((mutations) => {
@@ -739,8 +793,11 @@ if (window === window.top) {
     }
   }
 
-  if (document.body) startUI();
-  else document.addEventListener('DOMContentLoaded', startUI);
+  // Saved results load first, so posts by accounts already looked up never flash a pin.
+  loadSavedResults().then(() => {
+    if (document.body) startUI();
+    else document.addEventListener('DOMContentLoaded', startUI);
+  });
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = { createFlag, createSourceContent };
