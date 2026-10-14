@@ -8,7 +8,7 @@
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 <div align="center">
   <img src="screenshots/s1.png" alt="X-Ray Extension in Action" width="800">
@@ -20,7 +20,7 @@
 
 ---
 
-## ℹ️ What is X-Ray?
+## What is X-Ray?
 
 **X-Ray for Twitter** is a powerful Chrome extension that instantly reveals where Twitter/X users are tweeting from and what device they're using. With a simple click, discover:
 
@@ -33,9 +33,9 @@
 
 ---
 
-## ✨ Features
+## Features
 
-### 👆 Click-to-Reveal Design
+### Click-to-Reveal Design
 Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to-reveal** system. This protects your account from Twitter/X's aggressive rate limits while giving you full control over what data you fetch.
 
 **Why click-to-reveal?**
@@ -44,19 +44,19 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 *   **Faster performance** - Only loads what you actually want to see
 *   **Smart caching** - Once loaded, data is cached for instant re-display
 
-### 🎨 Beautiful Interface
+### Beautiful Interface
 *   Sleek, modern design that blends seamlessly with Twitter/X
 *   Smooth animations and hover effects
 *   Color-coded platforms (iOS blue, Android green)
 *   Glassmorphic styling with rotating borders
 
-### 🛡️ Privacy-First
+### Privacy-First
 *   **Zero data collection** - We don't track, store, or transmit anything
 *   **Local storage only** - All data stays in your browser session
 *   **No external servers** - Everything runs locally
 *   **Open source** - Full transparency, audit the code yourself
 
-### ⚡ Performance Optimized
+### Performance Optimized
 *   DNS prefetch for faster flag loading
 *   Smart caching system
 *   Efficient DOM manipulation
@@ -64,7 +64,7 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 
 ---
 
-## How It Works ?
+## How It Works
 
 1.  **Browse Twitter/X normally** - Extension adds a small location icon <img src="screenshots/pin.svg" width="16" height="16" align="center"> next to usernames
 2.  **Click the location icon** - Instantly loads the user's public location data
@@ -75,7 +75,7 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 
 ---
 
-## 🎯 Why Click-to-Reveal?
+## Why Click-to-Reveal?
 
 ### The Problem with Auto-Loading
 Many extensions automatically fetch data for every user you see. This causes:
@@ -93,7 +93,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## 💡 Use Cases
+## Use Cases
 
 *   <img src="screenshots/search.svg" width="16" height="16" align="center"> **Researchers** - Analyze geographic distribution of discussions
 *   <img src="screenshots/newspaper.svg" width="16" height="16" align="center"> **Journalists** - Verify user locations for fact-checking
@@ -104,7 +104,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## 🛡️ Privacy & Security
+## Privacy & Security
 
 ### What It Does Not Do
 *   <img src="screenshots/cross.svg" width="14" height="14" align="center"> No tracking or analytics
@@ -125,15 +125,15 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## 📥 Installation
+## Installation
 
-### 🛍️ From Chrome Web Store (Recommended)
+### From Chrome Web Store (Recommended)
 1.  Visit the [Chrome Web Store](#) (link coming soon)
 2.  Click "Add to Chrome"
 3.  Confirm permissions
 4.  Done! Start using on Twitter/X
 
-### 🛠️ Manual Installation (Developer Mode)
+### Manual Installation (Developer Mode)
 1.  Download or clone this repository
 2.  Open Chrome and go to `chrome://extensions/`
 3.  Enable "Developer mode" (top right)
@@ -143,15 +143,15 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## 🖱️ Usage
+## Usage
 
-### 🔹 Basic Usage
+### Basic Usage
 1.  Go to [twitter.com](https://twitter.com) or [x.com](https://x.com)
 2.  Look for the location icon <img src="screenshots/pin.svg" width="16" height="16" align="center"> next to any username (or near the Grok/More buttons)
 3.  Click it to reveal location and platform
 4.  Click the location pill to copy to clipboard
 
-### 💡 Pro Tips
+### Pro Tips
 *   **Hover** over the icon to see a "Get Location" tooltip
 *   **Hover** over location pills to see detailed info (Based in & Platform)
 *   **Session cache** - Once loaded, locations appear instantly on refresh
@@ -160,19 +160,19 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## ⚙️ Technical Details
+## Technical Details
 
-### 🛠️ Built With
+### Built With
 *   **Manifest V3** - Latest Chrome extension standard
 *   **Vanilla JavaScript** - No frameworks, pure performance
 *   **CSS3 Animations** - Smooth, GPU-accelerated effects
 *   **Modern Web APIs** - Clipboard, MutationObserver, etc.
 
-### 🔑 Permissions Explained
+### Permissions Explained
 *   **`declarativeNetRequest`** - Required to access profile data by temporarily removing frame-blocking headers
 *   **`host_permissions`** - Only works on x.com and twitter.com, no access to other sites
 
-### ⚙️ How It Works Technically
+### How It Works Technically
 1.  Injects a small script into Twitter/X pages
 2.  When you click the location icon, loads the user's public "About" page in a hidden iframe
 3.  Extracts location and platform data from the publicly visible profile
@@ -183,7 +183,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## 🌍 Supported Countries
+## Supported Countries
 
 X-Ray recognizes **150+ countries** with automatic flag detection:
 *   North America
@@ -197,7 +197,7 @@ If a country isn't recognized, a globe icon <img src="screenshots/globe.svg" wid
 
 ---
 
-## 📱 Platform Detection
+## Platform Detection
 
 Automatically identifies:
 *   <img src="screenshots/apple.svg" width="14" height="14" align="center"> **iOS** - iPhone, iPad, App Store
@@ -206,21 +206,21 @@ Automatically identifies:
 
 ---
 
-## ⚠️ Important Notes
+## Important Notes
 
-### ⏱️ Rate Limits
+### Rate Limits
 Twitter/X has strict rate limits. X-Ray's click-to-reveal design protects you, but:
 *   Don't spam-click hundreds of profiles rapidly
 *   The extension has built-in rate limiting (10 requests/minute max)
 *   If you hit Twitter's limits, wait a few minutes
 
-### 📊 Data Availability
+### Data Availability
 X-Ray can only show data that users have made public:
 *   Not all users have location information in their profile
 *   Some users may have restricted their "About" page
 *   Data comes from Twitter/X's public profile pages
 
-### ⚖️ Terms of Service
+### Terms of Service
 This extension accesses publicly available information. However:
 *   Use responsibly and ethically
 *   Respect user privacy
@@ -229,7 +229,7 @@ This extension accesses publicly available information. However:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Feel free to:
 *   Report bugs
@@ -239,7 +239,7 @@ Contributions are welcome! Feel free to:
 
 ---
 
-## 👏 Acknowledgments
+## Acknowledgments
 
 *   Country flags provided by [FlagCDN](https://flagcdn.com)
 *   Icons designed with love
@@ -247,7 +247,7 @@ Contributions are welcome! Feel free to:
 
 ---
 
-## 🏆 Why X-Ray?
+## Why X-Ray?
 
 *   **100% Free** - No premium tiers, no paywalls
 *   **Unlimited** - Use as much as you want
@@ -260,6 +260,6 @@ Contributions are welcome! Feel free to:
 ---
 
 <p align="center">
-  <strong>Made with ❤️ for the Twitter/X community</strong><br>
+  <strong>Made for the Twitter/X community</strong><br>
   <sub>Not affiliated with Twitter or X Corp</sub>
 </p>
