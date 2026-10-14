@@ -292,7 +292,80 @@ describe('pin lookups', () => {
 
     pill.click();
     expect(writeText).toHaveBeenCalledWith('Japan (Web App)');
+    await Promise.resolve();
     expect(pill.textContent).toContain('Copied!');
+  });
+
+  it('does not leave Copied! stuck on the pill after a double-click', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const pin = await addPost('dbl_acct');
+    pin.click();
+    found('dbl_acct', 'Germany', 'Web App');
+
+    const pill = document.querySelector('[data-handle="dbl_acct"]');
+    vi.useFakeTimers();
+
+    // Two rapid clicks
+    pill.click();
+    pill.click();
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(pill.textContent).toContain('Copied!');
+
+    // After the timer expires, it should restore the original location, not stay stuck on Copied!
+    vi.advanceTimersByTime(1800);
+    expect(pill.textContent).toContain('Germany');
+    expect(pill.textContent).not.toContain('Copied!');
+    expect(pill.className).toBe('loc-pill');
+
+    // It can be copied again later
+    pill.click();
+    expect(writeText).toHaveBeenCalledTimes(2);
+    await Promise.resolve();
+    expect(pill.textContent).toContain('Copied!');
+
+    vi.advanceTimersByTime(1800);
+    expect(pill.textContent).toContain('Germany');
+    vi.useRealTimers();
+  });
+
+  it('copies Unknown instead of undefined when an account has an app but no location', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+    const pin1 = await addPost('app_no_loc');
+    pin1.click();
+    found('app_no_loc', '', 'App Store');
+    const pill1 = document.querySelector('[data-handle="app_no_loc"]');
+    pill1.click();
+    expect(writeText).toHaveBeenCalledWith('Unknown (App Store)');
+
+    const pin2 = await addPost('no_app_no_loc');
+    pin2.click();
+    found('no_app_no_loc', '', '');
+    const pill2 = document.querySelector('[data-handle="no_app_no_loc"]');
+    pill2.click();
+    expect(writeText).toHaveBeenCalledWith('Unknown');
+  });
+
+  it('never shows Copied! when writing to the clipboard fails', async () => {
+    const writeText = vi.fn(() => Promise.reject(new Error('Permission denied')));
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+    const pin = await addPost('fail_copy_acct');
+    pin.click();
+    found('fail_copy_acct', 'France', 'iOS');
+
+    const pill = document.querySelector('[data-handle="fail_copy_acct"]');
+    pill.click();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledWith('France (iOS)');
+    expect(pill.className).toBe('loc-pill');
+    expect(pill.textContent).toContain('France');
+    expect(pill.textContent).not.toContain('Copied!');
   });
 
   it('never shows Not available when X answers before the 10 seconds are up', async () => {

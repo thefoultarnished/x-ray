@@ -204,6 +204,11 @@ if (window === window.top) {
   }
 
   function renderPill(btn, location, source) {
+    if (btn._resetCopyTimer) {
+      clearTimeout(btn._resetCopyTimer);
+      btn._resetCopyTimer = null;
+    }
+
     const isAndroid = Boolean(source) && /android|play store/i.test(source);
     const pillClass = isAndroid ? 'loc-pill android-device' : 'loc-pill';
     btn.className = pillClass;
@@ -217,20 +222,45 @@ if (window === window.top) {
       btn.append(sourceText);
     }
 
+    const originalContent = [...btn.childNodes];
+    let isCopying = false;
+
     btn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      const copyText = source ? `${location} (${source})` : location;
-      navigator.clipboard.writeText(copyText);
+      if (isCopying || btn.classList.contains('copied')) return;
+      isCopying = true;
 
-      const shown = [...btn.childNodes];
-      btn.className = `${pillClass} copied`;
-      btn.replaceChildren(createIcon(ICONS.CHECKMARK), ' Copied!');
-      setTimeout(() => {
-        btn.className = pillClass;
-        btn.replaceChildren(...shown);
-      }, 1800);
+      const locText = location || 'Unknown';
+      const copyText = source ? `${locText} (${source})` : locText;
+
+      try {
+        const copyPromise = navigator.clipboard?.writeText?.(copyText);
+        if (!copyPromise) {
+          isCopying = false;
+          return;
+        }
+
+        Promise.resolve(copyPromise)
+          .then(() => {
+            btn.className = `${pillClass} copied`;
+            btn.replaceChildren(createIcon(ICONS.CHECKMARK), ' Copied!');
+
+            clearTimeout(btn._resetCopyTimer);
+            btn._resetCopyTimer = setTimeout(() => {
+              btn.className = pillClass;
+              btn.replaceChildren(...originalContent);
+              isCopying = false;
+              btn._resetCopyTimer = null;
+            }, 1800);
+          })
+          .catch(() => {
+            isCopying = false;
+          });
+      } catch {
+        isCopying = false;
+      }
     };
     btn.onmouseenter = () => showHoverCard(btn, location, source);
     btn.onmouseleave = () => hideHoverCard();
