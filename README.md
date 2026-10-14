@@ -8,7 +8,7 @@
 
 ---
 
-## Screenshots
+## <img src="screenshots/icons/camera.svg" width="20" height="20" align="absmiddle"> Screenshots
 
 <div align="center">
   <img src="screenshots/s1.png" alt="X-Ray Extension in Action" width="800">
@@ -20,20 +20,20 @@
 
 ---
 
-## What is X-Ray?
+## <img src="screenshots/icons/info.svg" width="20" height="20" align="absmiddle"> What is X-Ray?
 
 **X-Ray for Twitter** is a powerful Chrome extension that instantly reveals where Twitter/X users are tweeting from and what device they're using. With a simple click, discover:
 
-*   <img src="screenshots/pin.svg" width="16" height="16" align="absmiddle"> **User Location** - See where they're based (from their public profile)
-*   <img src="screenshots/apple.svg" width="14" height="14" align="absmiddle"> **Device Platform** - Know if they're on iOS, Android, or Web
-*   <img src="screenshots/globe.svg" width="16" height="16" align="absmiddle"> **Country Flags** - Visual representation with country flags
+*   <img src="screenshots/icons/pin.svg" width="16" height="16" align="absmiddle"> **User Location** - See where they're based (from their public profile)
+*   <img src="screenshots/icons/apple.svg" width="14" height="14" align="absmiddle"> **Device Platform** - Know if they're on iOS, Android, or Web
+*   <img src="screenshots/icons/globe.svg" width="16" height="16" align="absmiddle"> **Country Flags** - Visual representation with country flags
 *   **Quick Copy** - One-click copy to clipboard
 
 **100% FREE. Unlimited usage. No subscriptions. No tracking.**
 
 ---
 
-## Features
+## <img src="screenshots/icons/zap.svg" width="20" height="20" align="absmiddle"> Features
 
 ### Click-to-Reveal Design
 Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to-reveal** system. This protects your account from Twitter/X's aggressive rate limits while giving you full control over what data you fetch.
@@ -64,9 +64,9 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 
 ---
 
-## How It Works
+## <img src="screenshots/icons/cursor.svg" width="20" height="20" align="absmiddle"> How It Works
 
-1.  **Browse Twitter/X normally** - Extension adds a small location icon <img src="screenshots/pin.svg" width="16" height="16" align="absmiddle"> next to usernames
+1.  **Browse Twitter/X normally** - Extension adds a small location icon <img src="screenshots/icons/pin.svg" width="16" height="16" align="absmiddle"> next to usernames
 2.  **Click the location icon** - Instantly loads the user's public location data
 3.  **View the info** - See their location with country flag and platform (iOS/Android/Web)
 4.  **Copy if needed** - Click the location pill to copy to clipboard
@@ -75,57 +75,57 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 
 ---
 
-## Why Click-to-Reveal?
+## <img src="screenshots/icons/target.svg" width="20" height="20" align="absmiddle"> Why Click-to-Reveal?
 
 ### The Problem with Auto-Loading
 Many extensions automatically fetch data for every user you see. This causes:
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> **Rate limit bans** - Twitter/X blocks excessive requests
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> **Account suspension risk** - Automated behavior triggers security flags
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> **Slow performance** - Loading hundreds of profiles kills your browser
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> **Wasted bandwidth** - Fetching data you don't need
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> **Rate limit bans** - Twitter/X blocks excessive requests
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> **Account suspension risk** - Automated behavior triggers security flags
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> **Slow performance** - Loading hundreds of profiles kills your browser
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> **Wasted bandwidth** - Fetching data you don't need
 
 ### Our Solution
 X-Ray's **click-to-reveal** approach means:
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> **You stay safe** - Only fetch what you need, when you need it
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> **No rate limits** - Controlled, manual requests don't trigger Twitter's defenses
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> **Blazing fast** - Instant response with smart caching
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> **Full control** - You decide what to reveal
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> **You stay safe** - Only fetch what you need, when you need it
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> **No rate limits** - Controlled, manual requests don't trigger Twitter's defenses
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> **Blazing fast** - Instant response with smart caching
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> **Full control** - You decide what to reveal
 
 ---
 
-## Use Cases
+## <img src="screenshots/icons/search.svg" width="20" height="20" align="absmiddle"> Use Cases
 
-*   <img src="screenshots/search.svg" width="16" height="16" align="absmiddle"> **Researchers** - Analyze geographic distribution of discussions
-*   <img src="screenshots/newspaper.svg" width="16" height="16" align="absmiddle"> **Journalists** - Verify user locations for fact-checking
-*   <img src="screenshots/chart.svg" width="16" height="16" align="absmiddle"> **Marketers** - Understand audience demographics
-*   <img src="screenshots/eye.svg" width="16" height="16" align="absmiddle"> **OSINT** - Open-source intelligence gathering
-*   <img src="screenshots/eye.svg" width="16" height="16" align="absmiddle"> **Curious Users** - Learn more about who you interact with
-*   <img src="screenshots/network.svg" width="16" height="16" align="absmiddle"> **Network Analysis** - Map connections across regions
+*   <img src="screenshots/icons/search.svg" width="16" height="16" align="absmiddle"> **Researchers** - Analyze geographic distribution of discussions
+*   <img src="screenshots/icons/newspaper.svg" width="16" height="16" align="absmiddle"> **Journalists** - Verify user locations for fact-checking
+*   <img src="screenshots/icons/chart.svg" width="16" height="16" align="absmiddle"> **Marketers** - Understand audience demographics
+*   <img src="screenshots/icons/eye.svg" width="16" height="16" align="absmiddle"> **OSINT** - Open-source intelligence gathering
+*   <img src="screenshots/icons/eye.svg" width="16" height="16" align="absmiddle"> **Curious Users** - Learn more about who you interact with
+*   <img src="screenshots/icons/network.svg" width="16" height="16" align="absmiddle"> **Network Analysis** - Map connections across regions
 
 ---
 
-## Privacy & Security
+## <img src="screenshots/icons/shield.svg" width="20" height="20" align="absmiddle"> Privacy & Security
 
 ### What It Does Not Do
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> No tracking or analytics
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> No data collection
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> No external servers
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> No cookies
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> No user profiling
-*   <img src="screenshots/cross.svg" width="14" height="14" align="absmiddle"> No ads
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No tracking or analytics
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No data collection
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No external servers
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No cookies
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No user profiling
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No ads
 
 ### What It Does
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> Access only publicly available profile information
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> Store data locally in your browser session only
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> Clear cache when you close your browser
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> Use standard web security practices (XSS prevention, origin validation)
-*   <img src="screenshots/check.svg" width="14" height="14" align="absmiddle"> Respect Twitter/X rate limits with click-to-reveal
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Access only publicly available profile information
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Store data locally in your browser session only
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Clear cache when you close your browser
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Use standard web security practices (XSS prevention, origin validation)
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Respect Twitter/X rate limits with click-to-reveal
 
 **Your privacy is our priority.**
 
 ---
 
-## Installation
+## <img src="screenshots/icons/download.svg" width="20" height="20" align="absmiddle"> Installation
 
 ### From Chrome Web Store (Recommended)
 1.  Visit the [Chrome Web Store](#) (link coming soon)
@@ -143,11 +143,11 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## Usage
+## <img src="screenshots/icons/pin.svg" width="20" height="20" align="absmiddle"> Usage
 
 ### Basic Usage
 1.  Go to [twitter.com](https://twitter.com) or [x.com](https://x.com)
-2.  Look for the location icon <img src="screenshots/pin.svg" width="16" height="16" align="absmiddle"> next to any username (or near the Grok/More buttons)
+2.  Look for the location icon <img src="screenshots/icons/pin.svg" width="16" height="16" align="absmiddle"> next to any username (or near the Grok/More buttons)
 3.  Click it to reveal location and platform
 4.  Click the location pill to copy to clipboard
 
@@ -160,7 +160,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## Technical Details
+## <img src="screenshots/icons/code.svg" width="20" height="20" align="absmiddle"> Technical Details
 
 ### Built With
 *   **Manifest V3** - Latest Chrome extension standard
@@ -183,7 +183,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ---
 
-## Supported Countries
+## <img src="screenshots/icons/globe-blue.svg" width="20" height="20" align="absmiddle"> Supported Countries
 
 X-Ray recognizes **150+ countries** with automatic flag detection:
 *   North America
@@ -193,20 +193,20 @@ X-Ray recognizes **150+ countries** with automatic flag detection:
 *   Africa
 *   Oceania
 
-If a country isn't recognized, a globe icon <img src="screenshots/globe.svg" width="16" height="16" align="absmiddle"> is shown instead.
+If a country isn't recognized, a globe icon <img src="screenshots/icons/globe.svg" width="16" height="16" align="absmiddle"> is shown instead.
 
 ---
 
-## Platform Detection
+## <img src="screenshots/icons/smartphone.svg" width="20" height="20" align="absmiddle"> Platform Detection
 
 Automatically identifies:
-*   <img src="screenshots/apple.svg" width="14" height="14" align="absmiddle"> **iOS** - iPhone, iPad, App Store
-*   <img src="screenshots/android.svg" width="16" height="16" align="absmiddle"> **Android** - Android devices, Play Store
-*   <img src="screenshots/web.svg" width="16" height="16" align="absmiddle"> **Web** - Desktop and mobile web browsers
+*   <img src="screenshots/icons/apple.svg" width="14" height="14" align="absmiddle"> **iOS** - iPhone, iPad, App Store
+*   <img src="screenshots/icons/android.svg" width="16" height="16" align="absmiddle"> **Android** - Android devices, Play Store
+*   <img src="screenshots/icons/web.svg" width="16" height="16" align="absmiddle"> **Web** - Desktop and mobile web browsers
 
 ---
 
-## Important Notes
+## <img src="screenshots/icons/alert.svg" width="20" height="20" align="absmiddle"> Important Notes
 
 ### Rate Limits
 Twitter/X has strict rate limits. X-Ray's click-to-reveal design protects you, but:
@@ -229,7 +229,7 @@ This extension accesses publicly available information. However:
 
 ---
 
-## Contributing
+## <img src="screenshots/icons/git-branch.svg" width="20" height="20" align="absmiddle"> Contributing
 
 Contributions are welcome! Feel free to:
 *   Report bugs
@@ -239,7 +239,7 @@ Contributions are welcome! Feel free to:
 
 ---
 
-## Acknowledgments
+## <img src="screenshots/icons/heart.svg" width="20" height="20" align="absmiddle"> Acknowledgments
 
 *   Country flags provided by [FlagCDN](https://flagcdn.com)
 *   Icons designed with love
@@ -247,7 +247,7 @@ Contributions are welcome! Feel free to:
 
 ---
 
-## Why X-Ray?
+## <img src="screenshots/icons/star.svg" width="20" height="20" align="absmiddle"> Why X-Ray?
 
 *   **100% Free** - No premium tiers, no paywalls
 *   **Unlimited** - Use as much as you want
