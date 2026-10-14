@@ -185,15 +185,9 @@ X-Ray's **click-to-reveal** approach means:
 
 ## <img src="screenshots/icons/globe-blue.svg" width="18" height="18" align="baseline"> Supported Countries
 
-X-Ray recognizes **150+ countries** with automatic flag detection:
-*   North America
-*   Europe
-*   Asia
-*   South America
-*   Africa
-*   Oceania
+X-Ray recognizes **250+ countries and territories** by their full English name, including older names (like "Turkey" or "Swaziland") and short forms (like "USA" or "UK"). Accounts based in **Europe** get the EU flag 🇪🇺, and England, Scotland, Wales and Northern Ireland get their own flags.
 
-If a country isn't recognized, a globe icon <img src="screenshots/icons/globe.svg" width="16" height="16" align="absmiddle"> is shown instead.
+For other regions (like "North America" or "South Asia"), or a place X-Ray doesn't recognize, a globe icon <img src="screenshots/icons/globe.svg" width="16" height="16" align="absmiddle"> is shown instead.
 
 ---
 
@@ -255,7 +249,7 @@ Contributions are welcome! Feel free to:
 *   **Fast** - Instant results with smart caching
 *   **Safe** - Click-to-reveal protects your account
 *   **Beautiful** - Gorgeous UI that feels native
-*   **Global** - Supports 150+ countries
+*   **Global** - Supports 250+ countries and territories
 
 ---
 

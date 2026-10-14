@@ -62,40 +62,76 @@ const flagCode = (el) =>
   el
     .querySelector('img.flag-img')
     ?.getAttribute('src')
-    .match(/w40\/(\w+)\.png$/)[1];
+    .match(/w40\/([\w-]+)\.png$/)[1] ?? 'globe';
+const flagFor = (loc) => flagCode(render(createFlag(loc)));
 
 describe('createFlag', () => {
-  it('shows the flag for a country name, ignoring case', () => {
-    expect(flagCode(render(createFlag('Germany')))).toBe('de');
-    expect(flagCode(render(createFlag('JAPAN')))).toBe('jp');
+  it('shows the flag for a country name, ignoring case and accents', () => {
+    expect(flagFor('Germany')).toBe('de');
+    expect(flagFor('JAPAN')).toBe('jp');
+    expect(flagFor('Türkiye')).toBe('tr');
+    expect(flagFor('turkiye')).toBe('tr');
+    expect(flagFor('Côte d’Ivoire')).toBe('ci');
+    expect(flagFor('St. Kitts & Nevis')).toBe('kn');
+    expect(flagFor('Saint Kitts and Nevis')).toBe('kn');
   });
 
-  it('finds a known place inside a longer location', () => {
-    expect(flagCode(render(createFlag('London, England')))).toBe('gb');
+  it('knows countries the old list was missing', () => {
+    for (const [loc, code] of [
+      ['Canada', 'ca'],
+      ['Mexico', 'mx'],
+      ['Cuba', 'cu'],
+      ['Jamaica', 'jm'],
+      ['Panama', 'pa'],
+      ['Costa Rica', 'cr'],
+    ]) {
+      expect(flagFor(loc)).toBe(code);
+    }
   });
 
-  it('prefers the longer name when one country name contains another', () => {
-    expect(flagCode(render(createFlag('South Sudan')))).toBe('ss');
-    expect(flagCode(render(createFlag('Nigeria')))).toBe('ng');
-    expect(flagCode(render(createFlag('Niger')))).toBe('ne');
-    expect(flagCode(render(createFlag('Papua New Guinea')))).toBe('pg');
+  it('only matches the whole name, never part of it', () => {
+    expect(flagFor('Belarus')).toBe('by');
+    expect(flagFor('Democratic Republic of the Congo')).toBe('cd');
+    expect(flagFor('Republic of the Congo')).toBe('cg');
+    expect(flagFor('Niger')).toBe('ne');
+    expect(flagFor('Nigeria')).toBe('ng');
+    expect(flagFor('South Sudan')).toBe('ss');
   });
 
-  it('shows the globe for unknown or missing locations', () => {
-    for (const loc of ['Atlantis', '', null, undefined]) {
+  it('understands older names and short forms', () => {
+    expect(flagFor('Turkey')).toBe('tr');
+    expect(flagFor('Czech Republic')).toBe('cz');
+    expect(flagFor('Ivory Coast')).toBe('ci');
+    expect(flagFor('USA')).toBe('us');
+    expect(flagFor('UK')).toBe('gb');
+    expect(flagFor('England')).toBe('gb-eng');
+  });
+
+  it('shows the EU flag for Europe and the European Union', () => {
+    expect(flagFor('Europe')).toBe('eu');
+    expect(flagFor('European Union')).toBe('eu');
+  });
+
+  it('shows the globe for regions, unknown places and missing locations', () => {
+    for (const loc of [
+      'North America',
+      'Australasia',
+      'South Asia',
+      'London, England',
+      'Atlantis',
+      '',
+      null,
+      undefined,
+    ]) {
       const el = render(createFlag(loc));
       expect(el.querySelector('img')).toBeNull();
       expect(el.querySelector('.globe-icon svg')).not.toBeNull();
     }
   });
 
-  it('keeps a location with quotes or tags as plain description text', () => {
-    const loc = 'Japan" data-injected="yes <b>x</b>';
-    const el = render(createFlag(loc));
-    const img = el.querySelector('img.flag-img');
-    expect(img.getAttribute('alt')).toBe(loc);
-    expect(img.hasAttribute('data-injected')).toBe(false);
-    expect(el.querySelector('b')).toBeNull();
+  it('never turns a location with quotes or tags into page code', () => {
+    const el = render(createFlag('Japan" data-injected="yes <b>x</b>'));
+    expect(el.querySelector('[data-injected], b')).toBeNull();
   });
 });
 
@@ -128,6 +164,18 @@ describe('createSourceContent', () => {
     const el = render(createSourceContent('United States App Store', 'India'));
     expect(flagCode(el)).toBe('us');
     expect(el.textContent).not.toMatch(/United States/);
+  });
+
+  it('shows a one-word store country once, as a flag only', () => {
+    const el = render(createSourceContent('Russia App Store', 'India'));
+    expect(flagCode(el)).toBe('ru');
+    expect(el.textContent).not.toMatch(/Russia/);
+    expect(el.querySelectorAll('svg')).toHaveLength(1);
+  });
+
+  it('does not mistake a platform word for a country', () => {
+    const el = render(createSourceContent('Android App', 'India'));
+    expect(el.querySelector('img.flag-img')).toBeNull();
   });
 
   it('handles locations containing regex characters', () => {
@@ -216,6 +264,17 @@ describe('pin lookups', () => {
     pin.click();
     expect(state(pin)).toEqual({ cls: 'loc-pill loading', text: 'Locating...', clickable: false });
     vi.advanceTimersByTime(13000);
+  });
+
+  it('shows the store country by its proper name in the info card', async () => {
+    const pin = await addPost('store_acct');
+    pin.click();
+    found('store_acct', 'India', 'United States App Store');
+    document.querySelector('[data-handle="store_acct"]').dispatchEvent(new MouseEvent('mouseenter'));
+
+    const card = document.getElementById('loc-hover-card').textContent;
+    expect(card).toContain('United States · iOS');
+    expect(card).not.toContain('United states');
   });
 
   it('makes the result pill hoverable and copyable right away', async () => {

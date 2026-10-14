@@ -31,216 +31,122 @@ if (window === window.top) {
     WEB: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px; display:inline-block; vertical-align:middle;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`,
   };
 
-  const COUNTRY_CODES = {
+  // Checked before Chrome's own list: names X may word differently, short forms and older names.
+  const EXTRA_COUNTRY_NAMES = {
     usa: 'us',
-    'united states': 'us',
-    america: 'us',
-    us: 'us',
-    tx: 'us',
-    ny: 'us',
-
+    'united states of america': 'us',
     uk: 'gb',
-    'united kingdom': 'gb',
-    england: 'gb',
-    london: 'gb',
+    'great britain': 'gb',
     britain: 'gb',
-    scotland: 'gb',
-    wales: 'gb',
-    france: 'fr',
-    paris: 'fr',
-    germany: 'de',
-    berlin: 'de',
-    deutschland: 'de',
-    italy: 'it',
-    rome: 'it',
-    italia: 'it',
-    spain: 'es',
-    madrid: 'es',
-    espana: 'es',
-    russia: 'ru',
-    moscow: 'ru',
-    ukraine: 'ua',
-    poland: 'pl',
-    romania: 'ro',
-    netherlands: 'nl',
-    holland: 'nl',
-    belgium: 'be',
-    greece: 'gr',
-    portugal: 'pt',
-    'czech republic': 'cz',
-    czechia: 'cz',
-    hungary: 'hu',
-    sweden: 'se',
-    austria: 'at',
-    switzerland: 'ch',
-    serbia: 'rs',
-    bulgaria: 'bg',
-    denmark: 'dk',
-    finland: 'fi',
-    slovakia: 'sk',
-    norway: 'no',
-    ireland: 'ie',
-    croatia: 'hr',
-    moldova: 'md',
-    bosnia: 'ba',
-    albania: 'al',
-    lithuania: 'lt',
-    'north macedonia': 'mk',
-    slovenia: 'si',
-    latvia: 'lv',
-    estonia: 'ee',
-    montenegro: 'me',
-    luxembourg: 'lu',
-    malta: 'mt',
-    iceland: 'is',
-    andorra: 'ad',
-    monaco: 'mc',
-    liechtenstein: 'li',
-    'san marino': 'sm',
-    vatican: 'va',
-    china: 'cn',
-    beijing: 'cn',
-    shanghai: 'cn',
-    india: 'in',
-    mumbai: 'in',
-    delhi: 'in',
-    japan: 'jp',
-    tokyo: 'jp',
-    indonesia: 'id',
-    pakistan: 'pk',
-    bangladesh: 'bd',
-    philippines: 'ph',
-    vietnam: 'vn',
-    turkey: 'tr',
-    turkiye: 'tr',
-    iran: 'ir',
-    thailand: 'th',
-    myanmar: 'mm',
-    'south korea': 'kr',
-    korea: 'kr',
-    iraq: 'iq',
-    afghanistan: 'af',
-    'saudi arabia': 'sa',
-    uzbekistan: 'uz',
-    malaysia: 'my',
-    yemen: 'ye',
-    nepal: 'np',
-    'north korea': 'kp',
-    'sri lanka': 'lk',
-    kazakhstan: 'kz',
-    syria: 'sy',
-    cambodia: 'kh',
-    jordan: 'jo',
-    azerbaijan: 'az',
-    uae: 'ae',
-    dubai: 'ae',
-    'united arab emirates': 'ae',
-    tajikistan: 'tj',
-    israel: 'il',
-    laos: 'la',
-    lebanon: 'lb',
-    kyrgyzstan: 'kg',
-    turkmenistan: 'tm',
-    singapore: 'sg',
-    oman: 'om',
-    palestine: 'ps',
-    kuwait: 'kw',
-    georgia: 'ge',
-    mongolia: 'mn',
-    armenia: 'am',
-    qatar: 'qa',
-    bahrain: 'bh',
-    'timor-leste': 'tl',
-    cyprus: 'cy',
-    bhutan: 'bt',
-    maldives: 'mv',
-    brunei: 'bn',
-    'hong kong': 'hk',
-    taiwan: 'tw',
-    brazil: 'br',
-    brasil: 'br',
-    colombia: 'co',
-    argentina: 'ar',
-    peru: 'pe',
-    venezuela: 've',
-    chile: 'cl',
-    ecuador: 'ec',
-    bolivia: 'bo',
-    paraguay: 'py',
-    uruguay: 'uy',
-    guyana: 'gy',
-    suriname: 'sr',
-    nigeria: 'ng',
-    ethiopia: 'et',
-    egypt: 'eg',
+    england: 'gb-eng',
+    scotland: 'gb-sct',
+    wales: 'gb-wls',
+    'northern ireland': 'gb-nir',
+    europe: 'eu',
+    'democratic republic of the congo': 'cd',
     'dr congo': 'cd',
-    tanzania: 'tz',
-    'south africa': 'za',
-    kenya: 'ke',
-    uganda: 'ug',
-    algeria: 'dz',
-    sudan: 'sd',
-    morocco: 'ma',
-    angola: 'ao',
-    ghana: 'gh',
-    mozambique: 'mz',
-    madagascar: 'mg',
-    cameroon: 'cm',
-    'ivory coast': 'ci',
-    niger: 'ne',
-    'burkina faso': 'bf',
-    mali: 'ml',
-    malawi: 'mw',
-    zambia: 'zm',
-    senegal: 'sn',
-    chad: 'td',
-    somalia: 'so',
-    zimbabwe: 'zw',
-    guinea: 'gn',
-    rwanda: 'rw',
-    benin: 'bj',
-    burundi: 'bi',
-    tunisia: 'tn',
-    'south sudan': 'ss',
-    togo: 'tg',
-    'sierra leone': 'sl',
-    libya: 'ly',
+    drc: 'cd',
+    'republic of the congo': 'cg',
     congo: 'cg',
-    liberia: 'lr',
-    'central african republic': 'cf',
-    mauritania: 'mr',
-    eritrea: 'er',
-    namibia: 'na',
-    gambia: 'gm',
-    botswana: 'bw',
-    gabon: 'ga',
-    lesotho: 'ls',
-    'guinea-bissau': 'gw',
-    'equatorial guinea': 'gq',
-    mauritius: 'mu',
-    eswatini: 'sz',
-    djibouti: 'dj',
-    comoros: 'km',
-    'cape verde': 'cv',
+    'hong kong': 'hk',
+    macau: 'mo',
+    macao: 'mo',
+    palestine: 'ps',
+    'state of palestine': 'ps',
+    uae: 'ae',
+    turkey: 'tr',
+    'czech republic': 'cz',
+    swaziland: 'sz',
+    burma: 'mm',
+    'ivory coast': 'ci',
+    macedonia: 'mk',
+    bosnia: 'ba',
     'sao tome': 'st',
-    seychelles: 'sc',
-    australia: 'au',
-    'papua new guinea': 'pg',
-    'new zealand': 'nz',
-    fiji: 'fj',
-    'solomon islands': 'sb',
-    micronesia: 'fm',
-    vanuatu: 'vu',
-    samoa: 'ws',
-    kiribati: 'ki',
-    tonga: 'to',
-    'marshall islands': 'mh',
-    palau: 'pw',
-    tuvalu: 'tv',
-    nauru: 'nr',
+    holland: 'nl',
+    'the netherlands': 'nl',
+    'russian federation': 'ru',
+    korea: 'kr',
+    'republic of korea': 'kr',
+    'east timor': 'tl',
+    'cabo verde': 'cv',
+    'viet nam': 'vn',
+    'holy see': 'va',
+    vatican: 'va',
+    'the bahamas': 'bs',
+    'the gambia': 'gm',
   };
 
-  const SORTED_COUNTRY_KEYS = Object.keys(COUNTRY_CODES).sort((a, b) => b.length - a.length);
+  // Codes Chrome knows that are not countries or that flagcdn has no flag for.
+  const NO_FLAG_CODES = new Set(['AC', 'CP', 'CQ', 'DG', 'EA', 'IC', 'TA', 'QO', 'EZ', 'ZZ']);
+
+  // "Türkiye", "turkiye" and "St. Kitts & Nevis" / "Saint Kitts and Nevis" compare equal.
+  function normalizeName(text) {
+    return text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\(.*?\)/g, ' ')
+      .replace(/&/g, ' and ')
+      .replace(/\bst\.?\s/g, 'saint ')
+      .replace(/[’'.]/g, '')
+      .replace(/[-–]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Every country Chrome knows by its English name, plus EXTRA_COUNTRY_NAMES on top.
+  function buildCountryCodes() {
+    const codes = new Map();
+    if (typeof Intl.DisplayNames === 'function') {
+      const names = new Intl.DisplayNames(['en'], { type: 'region' });
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      for (const a of letters) {
+        for (const b of letters) {
+          const code = a + b;
+          if (NO_FLAG_CODES.has(code)) continue;
+          const name = names.of(code);
+          // Skips unknown codes and outdated ones Chrome maps to a current code (UK -> GB).
+          if (!name || name === code || new Intl.Locale(`und-${code}`).region !== code) continue;
+          codes.set(normalizeName(name), code.toLowerCase());
+        }
+      }
+    }
+    for (const [name, code] of Object.entries(EXTRA_COUNTRY_NAMES)) codes.set(normalizeName(name), code);
+    return codes;
+  }
+
+  const COUNTRY_CODES = buildCountryCodes();
+  const unknownPlaces = new Set();
+
+  function countryCode(name) {
+    if (typeof name !== 'string' || !name.trim()) return null;
+    const code = COUNTRY_CODES.get(normalizeName(name)) ?? null;
+    if (!code && !unknownPlaces.has(name)) {
+      unknownPlaces.add(name);
+      console.debug(`[X-Ray] No flag for "${name}"`);
+    }
+    return code;
+  }
+
+  // "United States App Store" -> { code: 'us', name: 'United States', rest: 'App Store' }
+  function splitLeadingCountry(text) {
+    const words = text.split(/\s+/).filter(Boolean);
+    for (let n = words.length; n > 0; n--) {
+      const name = words.slice(0, n).join(' ');
+      const code = COUNTRY_CODES.get(normalizeName(name));
+      if (code) return { code, name, rest: words.slice(n).join(' ') };
+    }
+    return { code: null, name: '', rest: text };
+  }
+
+  // X sends the app name as HTML; keep only its text.
+  function sourceText(source) {
+    const doc = new DOMParser().parseFromString(source, 'text/html');
+    return (doc.body.textContent || '')
+      .replace(/Twitter for /gi, '')
+      .replace(/ App$/i, '')
+      .trim();
+  }
 
   // Only for the extension's own fixed icon markup, never for text from X or the cache.
   function createIcon(markup) {
@@ -266,12 +172,8 @@ if (window === window.top) {
   }
 
   function createFlag(locText) {
-    if (!locText) return createGlobe();
-    const cleanText = locText.toLowerCase();
-    if (COUNTRY_CODES[cleanText]) return createFlagImage(COUNTRY_CODES[cleanText], locText);
-
-    const key = SORTED_COUNTRY_KEYS.find((k) => cleanText.includes(k));
-    return key ? createFlagImage(COUNTRY_CODES[key], locText) : createGlobe();
+    const code = countryCode(locText);
+    return code ? createFlagImage(code, locText) : createGlobe();
   }
 
   // Capturing group so split() keeps the platform names between the text parts.
@@ -290,38 +192,12 @@ if (window === window.top) {
       return content;
     }
 
-    // X sends the app name as HTML; keep only its text.
-    const doc = new DOMParser().parseFromString(source, 'text/html');
-    let s = (doc.body.textContent || '')
-      .replace(/Twitter for /gi, '')
-      .replace(/ App$/i, '')
-      .trim();
-
-    if (location) {
-      const escapedLoc = location.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      s = s.replace(new RegExp(escapedLoc, 'gi'), '').trim();
-    }
-
-    let flag = null;
-    const word = s
-      .toLowerCase()
-      .split(/\s+/)
-      .find((w) => COUNTRY_CODES[w]);
-    if (word) {
-      flag = createFlagImage(COUNTRY_CODES[word], word);
-    } else {
-      const key = SORTED_COUNTRY_KEYS.find((k) => s.toLowerCase().includes(k));
-      if (key) {
-        flag = createFlagImage(COUNTRY_CODES[key], key);
-        const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        s = s.replace(new RegExp(escapedKey, 'gi'), '').trim();
-      }
-    }
-
-    if (flag) content.append(flag);
-    s.split(PLATFORM_WORDS).forEach((part, i) => {
+    const { code, name, rest } = splitLeadingCountry(sourceText(source));
+    // The store's country is left out when it is the location the pill already shows.
+    if (code && code !== countryCode(location)) content.append(createFlagImage(code, name));
+    rest.split(PLATFORM_WORDS).forEach((part, i) => {
       if (i % 2) content.append(createIcon(platformIcon(part)));
-      else if (part) content.append(part);
+      else if (part.trim()) content.append(part.trim());
     });
     if (!content.hasChildNodes()) content.append('Unknown');
     return content;
@@ -722,31 +598,11 @@ if (window === window.top) {
       card = createHoverCard();
     }
 
-    let sourceCountry = '';
+    let store = { code: null, name: '' };
     let sourcePlatform = '';
 
     if (source) {
-      const cleanedSource = source
-        .replace(/Twitter for /gi, '')
-        .replace(/ App$/i, '')
-        .trim();
-
-      const sourceWords = cleanedSource.toLowerCase().split(/\s+/);
-      for (const word of sourceWords) {
-        if (COUNTRY_CODES[word]) {
-          sourceCountry = word.charAt(0).toUpperCase() + word.slice(1);
-          break;
-        }
-      }
-
-      if (!sourceCountry) {
-        for (const key of SORTED_COUNTRY_KEYS) {
-          if (cleanedSource.toLowerCase().includes(key)) {
-            sourceCountry = key.charAt(0).toUpperCase() + key.slice(1);
-            break;
-          }
-        }
-      }
+      store = splitLeadingCountry(sourceText(source));
 
       if (/iPhone|iPad|iOS|App Store/i.test(source)) {
         sourcePlatform = 'iOS';
@@ -763,8 +619,8 @@ if (window === window.top) {
       createHoverRow('Based in', createFlag(location), location || 'Unknown'),
       createHoverRow(
         'Platform',
-        sourceCountry ? createFlag(sourceCountry) : createGlobe(),
-        `${sourceCountry || 'Unknown'} · ${sourcePlatform}`
+        store.code ? createFlagImage(store.code, store.name) : createGlobe(),
+        `${store.name || 'Unknown'} · ${sourcePlatform}`
       )
     );
 
