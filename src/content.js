@@ -367,47 +367,43 @@ if (window === window.top) {
   const NOT_AVAILABLE_TEXT = 'Not available';
   const LOOKUP_TIMEOUT_MS = 10000;
   const NOT_AVAILABLE_MS = 3000;
-  const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000;
+  const CACHE_KEY = 'x_location_cache';
+  const CACHE_DURATION = 90 * 24 * 60 * 60 * 1000;
+  const MAX_SAVED_RESULTS = 10000;
 
-  try {
-    const cached = localStorage.getItem('x_location_cache');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      const now = Date.now();
-
-      Object.keys(parsed).forEach((handle) => {
-        const entry = parsed[handle];
-        if (entry.timestamp && now - entry.timestamp < CACHE_DURATION) {
-          locationMap[handle] = { loc: entry.loc, src: entry.src };
-        }
-      });
-
-      if (Object.keys(locationMap).length > 0) {
-        localStorage.setItem(
-          'x_location_cache',
-          JSON.stringify(
-            Object.fromEntries(
-              Object.entries(locationMap).map(([h, data]) => [h, { ...data, timestamp: parsed[h]?.timestamp || now }])
-            )
-          )
-        );
-      } else {
-        localStorage.removeItem('x_location_cache');
-      }
+  function readSavedResults() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CACHE_KEY));
+      return saved && typeof saved === 'object' ? saved : {};
+    } catch (e) {
+      console.warn('[X-Ray] Could not read saved locations:', e);
+      return {};
     }
-  } catch (e) {
-    console.error('Failed to load location cache:', e);
+  }
+
+  const isFresh = (entry, now) => Boolean(entry) && now - entry.timestamp < CACHE_DURATION;
+
+  {
+    const now = Date.now();
+    for (const [handle, entry] of Object.entries(readSavedResults())) {
+      if (isFresh(entry, now)) locationMap[handle] = { loc: entry.loc, src: entry.src };
+    }
   }
 
   function saveToCache(handle, loc, src) {
     locationMap[handle] = { loc, src };
+    const now = Date.now();
+    // Re-read before writing so results saved by other X tabs are kept, each with its own date.
+    const saved = readSavedResults();
+    saved[handle] = { loc, src, timestamp: now };
+    const kept = Object.entries(saved)
+      .filter(([, entry]) => isFresh(entry, now))
+      .sort((a, b) => b[1].timestamp - a[1].timestamp)
+      .slice(0, MAX_SAVED_RESULTS);
     try {
-      const cacheData = Object.fromEntries(
-        Object.entries(locationMap).map(([h, data]) => [h, { ...data, timestamp: Date.now() }])
-      );
-      localStorage.setItem('x_location_cache', JSON.stringify(cacheData));
+      localStorage.setItem(CACHE_KEY, JSON.stringify(Object.fromEntries(kept)));
     } catch (e) {
-      console.error('Failed to save location cache:', e);
+      console.warn('[X-Ray] Could not save location:', e);
     }
   }
 

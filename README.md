@@ -51,8 +51,8 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 *   Glassmorphic styling with rotating borders
 
 ### Privacy-First
-*   **Zero data collection** - We don't track, store, or transmit anything
-*   **Local storage only** - All data stays in your browser session
+*   **Zero data collection** - We don't track you or collect anything about you
+*   **Saved on your device only** - Locations you looked up are kept in your browser for 90 days (up to 10,000), then forgotten
 *   **No external servers** - Everything runs locally
 *   **Open source** - Full transparency, audit the code yourself
 
@@ -116,8 +116,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ### What It Does
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Access only publicly available profile information
-*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Store data locally in your browser session only
-*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Clear cache when you close your browser
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Keep looked-up locations only in your browser, for 90 days
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Use standard web security practices (XSS prevention, origin validation)
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Respect Twitter/X rate limits with click-to-reveal
 
@@ -154,7 +153,7 @@ X-Ray's **click-to-reveal** approach means:
 ### Pro Tips
 *   **Hover** over the icon to see a "Get Location" tooltip
 *   **Hover** over location pills to see detailed info (Based in & Platform)
-*   **Session cache** - Once loaded, locations appear instantly on refresh
+*   **Saved results** - Locations you looked up appear instantly for 90 days, even after a refresh
 *   **Works everywhere** - Timeline, profiles, replies, search results
 *   **Rate limit friendly** - Click only what you need
 
@@ -169,7 +168,7 @@ X-Ray's **click-to-reveal** approach means:
 *   **Modern Web APIs** - Clipboard, MutationObserver, etc.
 
 ### Permissions Explained
-*   **`declarativeNetRequest`** - Required to access profile data by temporarily removing frame-blocking headers
+*   **`declarativeNetRequest`** - Lets the profile's About page load in a hidden frame by removing X's "don't show in a frame" setting for that page only; all of X's other protections stay on
 *   **`host_permissions`** - Only works on x.com and twitter.com, no access to other sites
 
 ### How It Works Technically

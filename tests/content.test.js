@@ -120,41 +120,43 @@ describe('createSourceContent', () => {
   });
 });
 
-describe('pin lookups', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-    document.querySelectorAll('article').forEach((a) => a.remove());
-  });
+// Adds a post the way X renders it and waits for the extension to add its pin.
+async function addPost(handle) {
+  const article = document.createElement('article');
+  article.dataset.testid = 'tweet';
+  article.innerHTML = `<div data-testid="User-Name"><a href="/${handle}">${handle}</a></div><div><div data-testid="caret"></div></div>`;
+  document.body.append(article);
+  await vi.waitFor(() => expect(article.querySelector('.loc-btn')).not.toBeNull());
+  return article.querySelector('.loc-btn');
+}
 
-  // Adds a post the way X renders it and waits for the extension to add its pin.
-  async function addPost(handle) {
-    const article = document.createElement('article');
-    article.dataset.testid = 'tweet';
-    article.innerHTML = `<div data-testid="User-Name"><a href="/${handle}">${handle}</a></div><div><div data-testid="caret"></div></div>`;
-    document.body.append(article);
-    await vi.waitFor(() => expect(article.querySelector('.loc-btn')).not.toBeNull());
-    return article.querySelector('.loc-btn');
-  }
+const lookupFrame = () => document.querySelector('iframe')?.contentWindow;
+
+// What parser.js sends from the hidden lookup page when X's About page answers.
+const found = (handle, location, source, from = lookupFrame()) =>
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      origin: 'https://x.com',
+      source: from,
+      data: { type: 'X_LOCATION_FOUND', handle, location, source },
+    })
+  );
+
+const saved = () => JSON.parse(localStorage.getItem('x_location_cache') || '{}');
+
+const removePosts = () => {
+  vi.useRealTimers();
+  document.querySelectorAll('article').forEach((a) => a.remove());
+};
+
+describe('pin lookups', () => {
+  afterEach(removePosts);
 
   const state = (el) => ({
     cls: el.className,
     text: el.textContent.trim(),
     clickable: el.style.pointerEvents !== 'none',
   });
-
-  const lookupFrame = () => document.querySelector('iframe')?.contentWindow;
-
-  // What parser.js sends from the hidden lookup page when X's About page answers.
-  const found = (handle, location, source, from = lookupFrame()) =>
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        origin: 'https://x.com',
-        source: from,
-        data: { type: 'X_LOCATION_FOUND', handle, location, source },
-      })
-    );
-
-  const saved = () => JSON.parse(localStorage.getItem('x_location_cache') || '{}');
 
   it('keeps Locating for 10 seconds, shows Not available for 3 seconds, then the pin again', async () => {
     const pin = await addPost('slow_acct');
@@ -282,24 +284,10 @@ describe('pin lookups', () => {
 });
 
 describe('answers that are not from the lookup', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-    document.querySelectorAll('article').forEach((a) => a.remove());
-  });
-
-  async function addPost(handle) {
-    const article = document.createElement('article');
-    article.dataset.testid = 'tweet';
-    article.innerHTML = `<div data-testid="User-Name"><a href="/${handle}">${handle}</a></div><div><div data-testid="caret"></div></div>`;
-    document.body.append(article);
-    await vi.waitFor(() => expect(article.querySelector('.loc-btn')).not.toBeNull());
-    return article.querySelector('.loc-btn');
-  }
+  afterEach(removePosts);
 
   const send = (data, source) =>
     window.dispatchEvent(new MessageEvent('message', { origin: 'https://x.com', source, data }));
-  const lookupFrame = () => document.querySelector('iframe').contentWindow;
-  const saved = () => JSON.parse(localStorage.getItem('x_location_cache') || '{}');
 
   it('ignores a fake result sent by the page itself', async () => {
     const pin = await addPost('target_acct');
@@ -344,5 +332,66 @@ describe('answers that are not from the lookup', () => {
     expect(pin.textContent).toBe('Locating...');
     send({ type: 'X_LOCATION_FOUND', handle: 'odd_acct', location: 'Peru', source: 'Web App' }, lookupFrame());
     other.remove();
+  });
+});
+
+describe('saved results', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  afterEach(removePosts);
+
+  const plant = (entries) => localStorage.setItem('x_location_cache', JSON.stringify(entries));
+  const result = (daysAgo) => ({ loc: 'Japan', src: 'Web App', timestamp: Date.now() - daysAgo * DAY });
+
+  async function lookUp(handle) {
+    const pin = await addPost(handle);
+    pin.click();
+    found(handle, 'Kenya', 'Web App');
+  }
+
+  it('keeps the date of older results when a new one is saved', async () => {
+    const old = result(29);
+    plant({ OldAcct: old });
+    await lookUp('new_acct');
+
+    expect(saved().OldAcct.timestamp).toBe(old.timestamp);
+    expect(Date.now() - saved().new_acct.timestamp).toBeLessThan(1000);
+  });
+
+  it('forgets results older than 90 days and keeps younger ones', async () => {
+    plant({ Ancient: result(90.01), Recent: result(89.99), Broken: { loc: 'Peru' } });
+    await lookUp('fresh_save');
+
+    expect(Object.keys(saved()).sort()).toEqual(['Recent', 'fresh_save']);
+  });
+
+  it('keeps at most 10,000 results, dropping the oldest first', async () => {
+    const many = {};
+    for (let i = 0; i < 10000; i++)
+      many[`acct${i}`] = { loc: 'Japan', src: 'Web', timestamp: Date.now() - (i + 1) * 1000 };
+    plant(many);
+    await lookUp('newest');
+
+    const after = saved();
+    expect(Object.keys(after)).toHaveLength(10000);
+    expect(after).toHaveProperty('newest');
+    expect(after).toHaveProperty('acct0');
+    expect(after).not.toHaveProperty('acct9999');
+  });
+
+  it('keeps results another X tab saved in the meantime', async () => {
+    plant({});
+    await lookUp('tab_one');
+    // Another tab saves its own result straight into storage.
+    plant({ ...saved(), tab_two: result(0) });
+    await lookUp('tab_one_again');
+
+    expect(Object.keys(saved()).sort()).toEqual(['tab_one', 'tab_one_again', 'tab_two']);
+  });
+
+  it('starts over cleanly when the saved data is unreadable', async () => {
+    localStorage.setItem('x_location_cache', '{not json');
+    await lookUp('after_broken');
+
+    expect(Object.keys(saved())).toEqual(['after_broken']);
   });
 });
