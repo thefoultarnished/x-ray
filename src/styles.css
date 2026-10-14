@@ -1,3 +1,10 @@
+/* Prefixed so they can't clash with X's own variables on the shared page root. */
+:root {
+  --xray-muted: #71767b;
+  --xray-muted-bg: rgba(113, 118, 123, 0.12);
+  --xray-muted-border: rgba(113, 118, 123, 0.25);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -283,6 +290,18 @@
   min-width: auto;
   width: auto;
   height: 20px;
+}
+
+.loc-pill.unavailable {
+  color: var(--xray-muted);
+  background: var(--xray-muted-bg);
+  border-color: var(--xray-muted-border);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.loc-pill.unavailable::before {
+  display: none;
 }
 
 .loc-pill.loading .loading-text {

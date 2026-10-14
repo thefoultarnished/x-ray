@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "X-Ray for Twitter (X Location Viewer)",
-  "version": "1.0",
+  "version": "1.5",
   "description": "Reveals location and platform info for Twitter/X users. See where they tweet from and what device they use.",
   "minimum_chrome_version": "130",
   "icons": {

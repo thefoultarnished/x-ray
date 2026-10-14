@@ -319,6 +319,9 @@ if (window === window.top) {
   let scraperFrame = null;
   let busyHandle = null;
   const LOADING_TEXT = 'Locating...';
+  const NOT_AVAILABLE_TEXT = 'Not available';
+  const LOOKUP_TIMEOUT_MS = 10000;
+  const NOT_AVAILABLE_MS = 3000;
   const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000;
 
   try {
@@ -397,6 +400,8 @@ if (window === window.top) {
         btn.innerHTML = `${flagHtml}${displayText}${sourceHtml}`;
 
         const newBtn = btn.cloneNode(true);
+        // The clone keeps the click block set while it was loading.
+        newBtn.style.pointerEvents = '';
         btn.parentNode.replaceChild(newBtn, btn);
         newBtn.onclick = (e) => {
           e.preventDefault();
@@ -503,36 +508,30 @@ if (window === window.top) {
 
     const iframe = getScraperFrame();
 
-    iframe.onerror = () => {
-      console.error(`Failed to load profile for @${handle}`);
-      document.querySelectorAll(`.loc-btn[data-handle="${handle}"]`).forEach((btn) => {
-        btn.className = 'loc-btn';
-        btn.innerHTML = ICONS.PIN;
-        btn.style.pointerEvents = 'auto';
-      });
-      busyHandle = null;
-      isProcessingQueue = false;
-      if (scraperFrame) scraperFrame.src = 'about:blank';
-      setTimeout(processQueue, 500);
-    };
-
     iframe.src = `${window.location.origin}/${handle}/about`;
 
     setTimeout(() => {
-      if (busyHandle === handle) {
-        busyHandle = null;
-        isProcessingQueue = false;
-        document.querySelectorAll(`.loc-btn[data-handle="${handle}"]`).forEach((btn) => {
-          if (btn.className.includes('loc-pill') && !btn.className.includes('loading')) return;
+      if (busyHandle !== handle) return;
+      busyHandle = null;
+      isProcessingQueue = false;
+      console.warn(`[X-Ray] No location data for @${handle} after ${LOOKUP_TIMEOUT_MS / 1000}s`);
+      document.querySelectorAll(`.loc-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
+      if (scraperFrame) scraperFrame.src = 'about:blank';
+      processQueue();
+    }, LOOKUP_TIMEOUT_MS);
+  }
 
-          btn.className = 'loc-btn';
-          btn.innerHTML = ICONS.PIN;
-          btn.style.pointerEvents = 'auto';
-        });
-        if (scraperFrame) scraperFrame.src = 'about:blank';
-        processQueue();
-      }
-    }, 5000);
+  // The pill keeps its original pin click handler, so restoring the class and icon makes it clickable again.
+  function showNotAvailable(btn) {
+    btn.className = 'loc-pill unavailable';
+    btn.textContent = NOT_AVAILABLE_TEXT;
+    setTimeout(() => {
+      // A late result may have replaced the pill meanwhile; leave that alone.
+      if (!btn.isConnected || !btn.classList.contains('unavailable')) return;
+      btn.className = 'loc-btn';
+      btn.innerHTML = ICONS.PIN;
+      btn.style.pointerEvents = '';
+    }, NOT_AVAILABLE_MS);
   }
 
   let tooltip;
