@@ -242,35 +242,56 @@ if (window === window.top) {
 
   const SORTED_COUNTRY_KEYS = Object.keys(COUNTRY_CODES).sort((a, b) => b.length - a.length);
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  // Only for the extension's own fixed icon markup, never for text from X or the cache.
+  function createIcon(markup) {
+    const template = document.createElement('template');
+    template.innerHTML = markup;
+    return template.content.firstElementChild;
   }
 
-  function getFlagHtml(locText) {
-    if (!locText) return `<span class="globe-icon">${ICONS.GLOBE}</span>`;
+  function createGlobe() {
+    const globe = document.createElement('span');
+    globe.className = 'globe-icon';
+    globe.append(createIcon(ICONS.GLOBE));
+    return globe;
+  }
+
+  function createFlagImage(code, alt) {
+    const img = document.createElement('img');
+    img.src = `https://flagcdn.com/w40/${code}.png`;
+    img.className = 'flag-img';
+    img.alt = alt;
+    img.loading = 'eager';
+    return img;
+  }
+
+  function createFlag(locText) {
+    if (!locText) return createGlobe();
     const cleanText = locText.toLowerCase();
+    if (COUNTRY_CODES[cleanText]) return createFlagImage(COUNTRY_CODES[cleanText], locText);
 
-    if (COUNTRY_CODES[cleanText]) {
-      const escapedLoc = escapeHtml(locText);
-      return `<img src="https://flagcdn.com/w40/${COUNTRY_CODES[cleanText]}.png" class="flag-img" alt="${escapedLoc}" loading="eager">`;
-    }
-
-    for (const key of SORTED_COUNTRY_KEYS) {
-      if (cleanText.includes(key)) {
-        const escapedLoc = escapeHtml(locText);
-        return `<img src="https://flagcdn.com/w40/${COUNTRY_CODES[key]}.png" class="flag-img" alt="${escapedLoc}" loading="eager">`;
-      }
-    }
-    return `<span class="globe-icon">${ICONS.GLOBE}</span>`;
+    const key = SORTED_COUNTRY_KEYS.find((k) => cleanText.includes(k));
+    return key ? createFlagImage(COUNTRY_CODES[key], locText) : createGlobe();
   }
 
-  function cleanSource(source, location) {
-    if (!source) return 'Unknown';
+  // Capturing group so split() keeps the platform names between the text parts.
+  const PLATFORM_WORDS = /(iPhone|iPad|iOS|App Store|Android|Play Store|Web)/i;
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(source, 'text/html');
+  function platformIcon(word) {
+    if (/^(iPhone|iPad|iOS|App Store)$/i.test(word)) return PLATFORM_ICONS.APPLE;
+    if (/^(Android|Play Store)$/i.test(word)) return PLATFORM_ICONS.ANDROID;
+    return PLATFORM_ICONS.WEB;
+  }
+
+  function createSourceContent(source, location) {
+    const content = document.createDocumentFragment();
+    if (!source) {
+      content.append('Unknown');
+      return content;
+    }
+
+    // X sends the app name as HTML; keep only its text.
+    const doc = new DOMParser().parseFromString(source, 'text/html');
     let s = (doc.body.textContent || '')
       .replace(/Twitter for /gi, '')
       .replace(/ App$/i, '')
@@ -278,41 +299,65 @@ if (window === window.top) {
 
     if (location) {
       const escapedLoc = location.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(escapedLoc, 'gi');
-      s = s.replace(re, '').trim();
+      s = s.replace(new RegExp(escapedLoc, 'gi'), '').trim();
     }
 
-    const sourceWords = s.toLowerCase().split(/\s+/);
-    let countryFlag = '';
-
-    for (const word of sourceWords) {
-      if (COUNTRY_CODES[word]) {
-        countryFlag = `<img src="https://flagcdn.com/w40/${COUNTRY_CODES[word]}.png" class="flag-img" alt="${escapeHtml(word)}" loading="eager">`;
-        break;
-      }
-    }
-    if (!countryFlag) {
-      for (const key of SORTED_COUNTRY_KEYS) {
-        if (s.toLowerCase().includes(key)) {
-          countryFlag = `<img src="https://flagcdn.com/w40/${COUNTRY_CODES[key]}.png" class="flag-img" alt="${escapeHtml(key)}" loading="eager">`;
-
-          const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const re = new RegExp(escapedKey, 'gi');
-          s = s.replace(re, '').trim();
-          break;
-        }
+    let flag = null;
+    const word = s
+      .toLowerCase()
+      .split(/\s+/)
+      .find((w) => COUNTRY_CODES[w]);
+    if (word) {
+      flag = createFlagImage(COUNTRY_CODES[word], word);
+    } else {
+      const key = SORTED_COUNTRY_KEYS.find((k) => s.toLowerCase().includes(k));
+      if (key) {
+        flag = createFlagImage(COUNTRY_CODES[key], key);
+        const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        s = s.replace(new RegExp(escapedKey, 'gi'), '').trim();
       }
     }
 
-    s = s.replace(/iPhone|iPad|iOS|App Store/gi, PLATFORM_ICONS.APPLE);
-    s = s.replace(/Android|Play Store/gi, PLATFORM_ICONS.ANDROID);
-    s = s.replace(/Web/gi, PLATFORM_ICONS.WEB);
+    if (flag) content.append(flag);
+    s.split(PLATFORM_WORDS).forEach((part, i) => {
+      if (i % 2) content.append(createIcon(platformIcon(part)));
+      else if (part) content.append(part);
+    });
+    if (!content.hasChildNodes()) content.append('Unknown');
+    return content;
+  }
 
-    if (countryFlag) {
-      s = countryFlag + s;
+  function renderPill(btn, location, source) {
+    const isAndroid = Boolean(source) && /android|play store/i.test(source);
+    const pillClass = isAndroid ? 'loc-pill android-device' : 'loc-pill';
+    btn.className = pillClass;
+    // Clears the click block left over from the loading state.
+    btn.style.pointerEvents = '';
+    btn.replaceChildren(createFlag(location), location || 'Unknown Loc');
+    if (source) {
+      const sourceText = document.createElement('span');
+      sourceText.className = 'source-text';
+      sourceText.append(createSourceContent(source, location));
+      btn.append(sourceText);
     }
 
-    return s || 'Unknown';
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const copyText = source ? `${location} (${source})` : location;
+      navigator.clipboard.writeText(copyText);
+
+      const shown = [...btn.childNodes];
+      btn.className = `${pillClass} copied`;
+      btn.replaceChildren(createIcon(ICONS.CHECKMARK), ' Copied!');
+      setTimeout(() => {
+        btn.className = pillClass;
+        btn.replaceChildren(...shown);
+      }, 1800);
+    };
+    btn.onmouseenter = () => showHoverCard(btn, location, source);
+    btn.onmouseleave = () => hideHoverCard();
   }
 
   const locationMap = {};
@@ -366,63 +411,41 @@ if (window === window.top) {
     }
   }
 
+  const HANDLE_PATTERN = /^[A-Za-z0-9_]{1,15}$/;
+
+  // Only answers from our own hidden lookup page, about the account being looked up, are trusted.
+  function isLookupAnswer(event) {
+    if (event.origin !== 'https://x.com' && event.origin !== 'https://twitter.com') return false;
+    if (!scraperFrame || event.source !== scraperFrame.contentWindow) return false;
+    const data = event.data;
+    if (!data || data.type !== 'X_LOCATION_FOUND') return false;
+    return (
+      typeof data.handle === 'string' &&
+      HANDLE_PATTERN.test(data.handle) &&
+      busyHandle !== null &&
+      data.handle.toLowerCase() === busyHandle.toLowerCase()
+    );
+  }
+
   window.addEventListener('message', (event) => {
-    if (event.origin !== 'https://x.com' && event.origin !== 'https://twitter.com') {
-      return;
-    }
+    if (!isLookupAnswer(event)) return;
+    // Use the name as written on the page, so the pills for this account are found.
+    const handle = busyHandle;
+    const { location, source } = event.data;
 
-    if (event.data && event.data.type === 'X_LOCATION_FOUND') {
-      const { handle, location, source } = event.data;
+    saveToCache(handle, location, source);
+    updateToLocationText(handle, location, source);
 
-      saveToCache(handle, location, source);
-      updateToLocationText(handle, location, source);
-
-      if (scraperFrame) {
-        scraperFrame.src = 'about:blank';
-        busyHandle = null;
-      }
-      isProcessingQueue = false;
-      setTimeout(processQueue, 500);
-    }
+    scraperFrame.src = 'about:blank';
+    busyHandle = null;
+    isProcessingQueue = false;
+    setTimeout(processQueue, 500);
   });
 
   function updateToLocationText(handle, location, source) {
-    const flagHtml = getFlagHtml(location);
-    const escapedLocation = escapeHtml(location || 'Unknown Loc');
-    const sourceHtml = source ? `<span class="source-text">${cleanSource(source, location)}</span>` : '';
-    const displayText = location ? escapedLocation : 'Unknown Loc';
-    const isAndroid = source && /android|play store/i.test(source);
-
     document
       .querySelectorAll(`.loc-btn[data-handle="${handle}"], .loc-pill[data-handle="${handle}"]`)
-      .forEach((btn) => {
-        btn.className = isAndroid ? 'loc-pill android-device' : 'loc-pill';
-        btn.innerHTML = `${flagHtml}${displayText}${sourceHtml}`;
-
-        const newBtn = btn.cloneNode(true);
-        // The clone keeps the click block set while it was loading.
-        newBtn.style.pointerEvents = '';
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          const copyText = source ? `${location} (${source})` : location;
-          navigator.clipboard.writeText(copyText);
-
-          const oldHtml = newBtn.innerHTML;
-          const oldClass = newBtn.className;
-          newBtn.className = isAndroid ? 'loc-pill android-device copied' : 'loc-pill copied';
-          newBtn.innerHTML = `${ICONS.CHECKMARK} Copied!`;
-
-          setTimeout(() => {
-            newBtn.className = oldClass;
-            newBtn.innerHTML = oldHtml;
-          }, 1800);
-        };
-        newBtn.onmouseenter = () => showHoverCard(newBtn, location, source);
-        newBtn.onmouseleave = () => hideHoverCard();
-      });
+      .forEach((btn) => renderPill(btn, location, source));
 
     if (!busyHandle && requestQueue.length === 0 && scraperFrame) {
       scraperFrame.remove();
@@ -574,35 +597,7 @@ if (window === window.top) {
         btn.dataset.handle = handle;
 
         if (locationMap[handle]) {
-          const data = locationMap[handle];
-          const flagHtml = getFlagHtml(data.loc);
-          const escapedLocation = escapeHtml(data.loc || 'Unknown Loc');
-          const sourceHtml = data.src ? `<span class="source-text">${cleanSource(data.src, data.loc)}</span>` : '';
-          const displayText = data.loc ? escapedLocation : 'Unknown Loc';
-
-          const isAndroid = data.src && /android|play store/i.test(data.src);
-
-          btn.className = isAndroid ? 'loc-pill android-device' : 'loc-pill';
-          btn.innerHTML = `${flagHtml}${displayText}${sourceHtml}`;
-
-          btn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const copyText = data.src ? `${data.loc} (${data.src})` : data.loc;
-            navigator.clipboard.writeText(copyText);
-
-            const oldHtml = btn.innerHTML;
-            const oldClass = btn.className;
-            btn.className = isAndroid ? 'loc-pill android-device copied' : 'loc-pill copied';
-            btn.innerHTML = `${ICONS.CHECKMARK} Copied!`;
-
-            setTimeout(() => {
-              btn.className = oldClass;
-              btn.innerHTML = oldHtml;
-            }, 1800);
-          };
-          btn.onmouseenter = () => showHoverCard(btn, data.loc, data.src);
-          btn.onmouseleave = () => hideHoverCard();
+          renderPill(btn, locationMap[handle].loc, locationMap[handle].src);
         } else {
           btn.className = 'loc-btn';
           btn.innerHTML = ICONS.PIN;
@@ -650,6 +645,19 @@ if (window === window.top) {
     tooltip.style.display = 'block';
   }
 
+  function createHoverRow(label, icon, text) {
+    const row = document.createElement('div');
+    row.className = 'loc-hover-row';
+    const labelEl = document.createElement('span');
+    labelEl.className = 'loc-hover-label';
+    labelEl.textContent = label;
+    const value = document.createElement('span');
+    value.className = 'loc-hover-value';
+    value.append(icon, text);
+    row.append(labelEl, value);
+    return row;
+  }
+
   function createHoverCard() {
     const card = document.createElement('div');
     card.className = 'loc-hover-card';
@@ -663,9 +671,6 @@ if (window === window.top) {
     if (!card) {
       card = createHoverCard();
     }
-
-    const flagHtml = getFlagHtml(location);
-    const escapedLocation = escapeHtml(location || 'Unknown');
 
     let sourceCountry = '';
     let sourcePlatform = '';
@@ -704,22 +709,14 @@ if (window === window.top) {
       }
     }
 
-    const sourceCountryFlag = sourceCountry
-      ? getFlagHtml(sourceCountry)
-      : `<span class="globe-icon">${ICONS.GLOBE}</span>`;
-    const escapedSourceCountry = escapeHtml(sourceCountry || 'Unknown');
-    const escapedSourcePlatform = escapeHtml(sourcePlatform);
-
-    card.innerHTML = `
-        <div class="loc-hover-row">
-            <span class="loc-hover-label">Based in</span>
-            <span class="loc-hover-value">${flagHtml}${escapedLocation}</span>
-        </div>
-        <div class="loc-hover-row">
-            <span class="loc-hover-label">Platform</span>
-            <span class="loc-hover-value">${sourceCountryFlag}${escapedSourceCountry} · ${escapedSourcePlatform}</span>
-        </div>
-    `;
+    card.replaceChildren(
+      createHoverRow('Based in', createFlag(location), location || 'Unknown'),
+      createHoverRow(
+        'Platform',
+        sourceCountry ? createFlag(sourceCountry) : createGlobe(),
+        `${sourceCountry || 'Unknown'} · ${sourcePlatform}`
+      )
+    );
 
     const rect = btn.getBoundingClientRect();
     const cardHeight = 100;
@@ -750,6 +747,6 @@ if (window === window.top) {
   else document.addEventListener('DOMContentLoaded', startUI);
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { getFlagHtml, cleanSource };
+    module.exports = { createFlag, createSourceContent };
   }
 }

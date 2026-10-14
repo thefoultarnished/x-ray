@@ -3,19 +3,29 @@ import { createRequire } from 'node:module';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-let getFlagHtml;
-let cleanSource;
+let createFlag;
+let createSourceContent;
 
 beforeAll(() => {
   // content.js asks for parser.js's URL as soon as it loads.
   globalThis.chrome = { runtime: { getURL: (path) => `chrome-extension://test/${path}` } };
-  ({ getFlagHtml, cleanSource } = require('../src/content.js'));
+  // Node's own localStorage replaces jsdom's and doesn't work without a file, so use a simple one.
+  const store = new Map();
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    },
+  });
+  ({ createFlag, createSourceContent } = require('../src/content.js'));
 });
 
-// Renders helper output so assertions check what the user sees, not markup strings.
-function render(html) {
+// Puts helper output into a container so assertions check what the user sees.
+function render(node) {
   const el = document.createElement('div');
-  el.innerHTML = html;
+  el.append(node);
   return el;
 }
 
@@ -25,66 +35,88 @@ const flagCode = (el) =>
     ?.getAttribute('src')
     .match(/w40\/(\w+)\.png$/)[1];
 
-describe('getFlagHtml', () => {
+describe('createFlag', () => {
   it('shows the flag for a country name, ignoring case', () => {
-    expect(flagCode(render(getFlagHtml('Germany')))).toBe('de');
-    expect(flagCode(render(getFlagHtml('JAPAN')))).toBe('jp');
+    expect(flagCode(render(createFlag('Germany')))).toBe('de');
+    expect(flagCode(render(createFlag('JAPAN')))).toBe('jp');
   });
 
   it('finds a known place inside a longer location', () => {
-    expect(flagCode(render(getFlagHtml('London, England')))).toBe('gb');
+    expect(flagCode(render(createFlag('London, England')))).toBe('gb');
   });
 
   it('prefers the longer name when one country name contains another', () => {
-    expect(flagCode(render(getFlagHtml('South Sudan')))).toBe('ss');
-    expect(flagCode(render(getFlagHtml('Nigeria')))).toBe('ng');
-    expect(flagCode(render(getFlagHtml('Niger')))).toBe('ne');
-    expect(flagCode(render(getFlagHtml('Papua New Guinea')))).toBe('pg');
+    expect(flagCode(render(createFlag('South Sudan')))).toBe('ss');
+    expect(flagCode(render(createFlag('Nigeria')))).toBe('ng');
+    expect(flagCode(render(createFlag('Niger')))).toBe('ne');
+    expect(flagCode(render(createFlag('Papua New Guinea')))).toBe('pg');
   });
 
   it('shows the globe for unknown or missing locations', () => {
     for (const loc of ['Atlantis', '', null, undefined]) {
-      const el = render(getFlagHtml(loc));
+      const el = render(createFlag(loc));
       expect(el.querySelector('img')).toBeNull();
       expect(el.querySelector('.globe-icon svg')).not.toBeNull();
     }
   });
+
+  it('keeps a location with quotes or tags as plain description text', () => {
+    const loc = 'Japan" data-injected="yes <b>x</b>';
+    const el = render(createFlag(loc));
+    const img = el.querySelector('img.flag-img');
+    expect(img.getAttribute('alt')).toBe(loc);
+    expect(img.hasAttribute('data-injected')).toBe(false);
+    expect(el.querySelector('b')).toBeNull();
+  });
 });
 
-describe('cleanSource', () => {
+describe('createSourceContent', () => {
   it('returns Unknown when there is no source', () => {
-    expect(cleanSource(null, 'India')).toBe('Unknown');
-    expect(cleanSource('', 'India')).toBe('Unknown');
+    expect(render(createSourceContent(null, 'India')).textContent).toBe('Unknown');
+    expect(render(createSourceContent('', 'India')).textContent).toBe('Unknown');
   });
 
   it('replaces the platform name with its icon', () => {
-    const iphone = render(cleanSource('Twitter for iPhone', null));
+    const iphone = render(createSourceContent('Twitter for iPhone', null));
     expect(iphone.querySelectorAll('svg')).toHaveLength(1);
     expect(iphone.textContent).not.toMatch(/Twitter for|iPhone/);
 
     for (const source of ['Android App', 'Web App']) {
-      const el = render(cleanSource(source, null));
+      const el = render(createSourceContent(source, null));
       expect(el.querySelectorAll('svg')).toHaveLength(1);
       expect(el.textContent.trim()).toBe('');
     }
   });
 
   it('does not repeat the location already shown in the pill', () => {
-    const el = render(cleanSource('India App Store', 'India'));
+    const el = render(createSourceContent('India App Store', 'India'));
     expect(el.querySelector('img.flag-img')).toBeNull();
     expect(el.textContent).not.toMatch(/India/);
     expect(el.querySelectorAll('svg')).toHaveLength(1);
   });
 
   it('flags the store country when it differs from the location', () => {
-    const el = render(cleanSource('United States App Store', 'India'));
+    const el = render(createSourceContent('United States App Store', 'India'));
     expect(flagCode(el)).toBe('us');
     expect(el.textContent).not.toMatch(/United States/);
   });
 
   it('handles locations containing regex characters', () => {
-    expect(() => cleanSource('Web App', 'C++ (test) [x]')).not.toThrow();
-    expect(render(cleanSource('Web App', 'C++ (test) [x]')).querySelectorAll('svg')).toHaveLength(1);
+    expect(() => createSourceContent('Web App', 'C++ (test) [x]')).not.toThrow();
+    expect(render(createSourceContent('Web App', 'C++ (test) [x]')).querySelectorAll('svg')).toHaveLength(1);
+  });
+
+  it('shows tags hidden in the app name as plain text, never as page elements', () => {
+    const el = render(createSourceContent('&lt;u style="color:red"&gt;FAKE&lt;/u&gt; Web App', null));
+    expect(el.querySelector('u')).toBeNull();
+    expect(el.textContent).toContain('<u style="color:red">FAKE</u>');
+    expect(el.querySelectorAll('svg')).toHaveLength(1);
+  });
+
+  it('keeps only the text of the HTML link X sends as the app name', () => {
+    const el = render(createSourceContent('<a href="https://evil.example" onclick="x()">Twitter for iPhone</a>', null));
+    expect(el.querySelector('a')).toBeNull();
+    expect(el.querySelectorAll('svg')).toHaveLength(1);
   });
 });
 
@@ -110,14 +142,19 @@ describe('pin lookups', () => {
     clickable: el.style.pointerEvents !== 'none',
   });
 
-  // What parser.js sends when X's About page answers.
-  const found = (handle, location, source) =>
+  const lookupFrame = () => document.querySelector('iframe')?.contentWindow;
+
+  // What parser.js sends from the hidden lookup page when X's About page answers.
+  const found = (handle, location, source, from = lookupFrame()) =>
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: 'https://x.com',
+        source: from,
         data: { type: 'X_LOCATION_FOUND', handle, location, source },
       })
     );
+
+  const saved = () => JSON.parse(localStorage.getItem('x_location_cache') || '{}');
 
   it('keeps Locating for 10 seconds, shows Not available for 3 seconds, then the pin again', async () => {
     const pin = await addPost('slow_acct');
@@ -196,7 +233,24 @@ describe('pin lookups', () => {
     });
   });
 
-  it('keeps a result that arrives while Not available is showing', async () => {
+  it('shows tags in a result as plain text in the pill and the info card', async () => {
+    const pin = await addPost('evil_acct');
+    pin.click();
+    found('evil_acct', 'Japan" data-injected="yes', '&lt;u&gt;FAKE&lt;/u&gt; Web App');
+
+    const pill = document.querySelector('[data-handle="evil_acct"]');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    const card = document.getElementById('loc-hover-card');
+
+    for (const el of [pill, card]) {
+      expect(el.querySelector('u, [data-injected]')).toBeNull();
+    }
+    expect(pill.textContent).toContain('Japan" data-injected="yes');
+    expect(pill.textContent).toContain('<u>FAKE</u>');
+    expect(card.textContent).toContain('Japan" data-injected="yes');
+  });
+
+  it('ignores an answer that arrives after the 10 seconds are up', async () => {
     const pin = await addPost('late_acct');
     vi.useFakeTimers();
     pin.click();
@@ -205,8 +259,90 @@ describe('pin lookups', () => {
     found('late_acct', 'Japan', 'Web App');
     vi.advanceTimersByTime(3000);
 
-    const pill = document.querySelector('[data-handle="late_acct"]');
-    expect(pill.className).toBe('loc-pill');
-    expect(pill.textContent).toContain('Japan');
+    expect(state(pin)).toEqual({ cls: 'loc-btn', text: '', clickable: true });
+    expect(saved()).not.toHaveProperty('late_acct');
+  });
+
+  it('keeps a result found for another post by the same account while Not available is showing', async () => {
+    const first = await addPost('twice_acct');
+    vi.useFakeTimers();
+    first.click();
+    vi.advanceTimersByTime(10000);
+    expect(first.textContent).toBe('Not available');
+
+    vi.useRealTimers();
+    const second = await addPost('twice_acct');
+    vi.useFakeTimers();
+    second.click();
+    found('twice_acct', 'Japan', 'Web App');
+    vi.advanceTimersByTime(3000);
+
+    for (const pill of [first, second]) expect(pill.textContent).toContain('Japan');
+  });
+});
+
+describe('answers that are not from the lookup', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.querySelectorAll('article').forEach((a) => a.remove());
+  });
+
+  async function addPost(handle) {
+    const article = document.createElement('article');
+    article.dataset.testid = 'tweet';
+    article.innerHTML = `<div data-testid="User-Name"><a href="/${handle}">${handle}</a></div><div><div data-testid="caret"></div></div>`;
+    document.body.append(article);
+    await vi.waitFor(() => expect(article.querySelector('.loc-btn')).not.toBeNull());
+    return article.querySelector('.loc-btn');
+  }
+
+  const send = (data, source) =>
+    window.dispatchEvent(new MessageEvent('message', { origin: 'https://x.com', source, data }));
+  const lookupFrame = () => document.querySelector('iframe').contentWindow;
+  const saved = () => JSON.parse(localStorage.getItem('x_location_cache') || '{}');
+
+  it('ignores a fake result sent by the page itself', async () => {
+    const pin = await addPost('target_acct');
+    send({ type: 'X_LOCATION_FOUND', handle: 'target_acct', location: 'Antarctica', source: 'Fake App' }, window);
+
+    expect(pin.className).toBe('loc-btn');
+    expect(saved()).not.toHaveProperty('target_acct');
+  });
+
+  it('ignores an answer about a different account and still finishes the real lookup', async () => {
+    const pin = await addPost('real_acct');
+    pin.click();
+    send({ type: 'X_LOCATION_FOUND', handle: 'nobody', location: 'X', source: 'X' }, lookupFrame());
+    expect(pin.textContent).toBe('Locating...');
+    expect(saved()).not.toHaveProperty('nobody');
+
+    send({ type: 'X_LOCATION_FOUND', handle: 'real_acct', location: 'Kenya', source: 'Web App' }, lookupFrame());
+    expect(pin.textContent).toContain('Kenya');
+  });
+
+  it('accepts the looked-up account written in different upper and lower case', async () => {
+    const pin = await addPost('CaseAcct');
+    pin.click();
+    send({ type: 'X_LOCATION_FOUND', handle: 'caseacct', location: 'Chile', source: 'Web App' }, lookupFrame());
+
+    expect(pin.textContent).toContain('Chile');
+    expect(saved()).toHaveProperty('CaseAcct');
+  });
+
+  it('ignores account names that are not real X usernames, leaving the page alone', async () => {
+    const pin = await addPost('odd_acct');
+    pin.click();
+    const other = document.createElement('div');
+    other.className = 'unrelated';
+    document.body.append(other);
+
+    for (const handle of ['"], div, [x="', '', 42, 'a'.repeat(16)]) {
+      send({ type: 'X_LOCATION_FOUND', handle, location: 'X', source: 'X' }, lookupFrame());
+    }
+
+    expect(other.className).toBe('unrelated');
+    expect(pin.textContent).toBe('Locating...');
+    send({ type: 'X_LOCATION_FOUND', handle: 'odd_acct', location: 'Peru', source: 'Web App' }, lookupFrame());
+    other.remove();
   });
 });
