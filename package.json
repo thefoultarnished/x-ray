@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.10",
+    "vitest": "^4.1.11"
+  }
+}

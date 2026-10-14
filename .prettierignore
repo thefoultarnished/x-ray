@@ -1,0 +1,6 @@
+*.html
+*.md
+dev/
+node_modules/
+coverage/
+package-lock.json

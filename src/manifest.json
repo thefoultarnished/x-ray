@@ -3,10 +3,20 @@
   "name": "X-Ray for Twitter (X Location Viewer)",
   "version": "1.0",
   "description": "Reveals location and platform info for Twitter/X users. See where they tweet from and what device they use.",
+  "minimum_chrome_version": "130",
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "X-Ray for Twitter",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "permissions": ["declarativeNetRequest"],
   "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
@@ -14,7 +24,7 @@
     "rule_resources": [{ "id": "ruleset_1", "enabled": true, "path": "rules.json" }]
   },
   "web_accessible_resources": [
-    { "resources": ["parser.js"], "matches": ["https://x.com/*", "https://twitter.com/*"] }
+    { "resources": ["parser.js"], "matches": ["https://x.com/*", "https://twitter.com/*"], "use_dynamic_url": true }
   ],
   "content_scripts": [
     {

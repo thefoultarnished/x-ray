@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>X-Ray for Twitter</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0d12;
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.07);
+      --border: rgba(255, 255, 255, 0.09);
+      --accent: #1d9bf0;
+      --accent-soft: rgba(29, 155, 240, 0.14);
+      --text: #f2f5f8;
+      --text-2: #a9b4c2;
+      --text-3: #7d8896;
+
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+
+      --radius: 12px;
+      --radius-sm: 6px;
+    }
+
+    body {
+      width: 300px;
+      margin: 0;
+      background: radial-gradient(120% 80% at 0% 0%, var(--accent-soft), transparent 60%), var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: block;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .version-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-3);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      text-decoration: none;
+      line-height: 1.2;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .version-tag:hover {
+      color: var(--text-2);
+      border-color: var(--text-3);
+    }
+
+    main {
+      padding: 14px 16px 4px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      backdrop-filter: blur(12px);
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    ol {
+      margin: 0;
+      padding-inline-start: 18px;
+      color: var(--text-2);
+    }
+
+    ol li:not(:last-child) {
+      margin-bottom: 4px;
+    }
+
+    ol li b {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .note {
+      margin: 10px 2px 0;
+      font-size: 11.5px;
+      color: var(--text-3);
+    }
+
+    .open-x {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      min-block-size: 34px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+
+    .open-x:hover {
+      filter: brightness(1.1);
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px 14px;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    :where(a, button):focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img class="logo" src="icons/icon48.png" width="24" height="24" alt="" />
+    <h1>X-Ray <a href="changelogs.html" class="version-tag" id="appVersion" title="What's new">v1.0</a></h1>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>How to use</h2>
+      <ol>
+        <li>Open <b>x.com</b> and scroll as usual.</li>
+        <li>Click the <b>pin icon</b> next to a post to see where that account is based and which app it uses.</li>
+        <li>Click the result to <b>copy</b> it.</li>
+      </ol>
+    </section>
+    <p class="note">Uses only the details X already shows on each profile's About page. No tracking, no accounts.</p>
+    <button type="button" class="open-x" id="openX">Open X</button>
+  </main>
+
+  <footer>
+    <a href="https://github.com/thefoultarnished/x-ray/issues" id="feedbackLink">Report a bug or send feedback</a>
+    <span>Not affiliated with X</span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
