@@ -5,8 +5,6 @@
   --xray-accent-hover: #40b3ff;
   --xray-android: #34a853;
   --xray-android-rgb: 52, 168, 83;
-  --xray-copied: #00ba7c;
-  --xray-copied-rgb: 0, 186, 124;
   --xray-muted: #71767b;
   --xray-muted-bg: rgba(113, 118, 123, 0.12);
   --xray-muted-border: rgba(113, 118, 123, 0.25);
@@ -134,7 +132,7 @@
   letter-spacing: 0.01em;
   padding: 2px 8px;
   border-radius: var(--xray-radius-pill);
-  cursor: pointer;
+  cursor: default;
   margin-right: 10px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   height: 20px;
@@ -275,36 +273,6 @@
 
 .xray-pill.android-device .xray-source {
   border-left-color: rgba(var(--xray-android-rgb), 0.25);
-}
-
-.xray-pill.copied {
-  background: linear-gradient(
-    135deg,
-    rgba(var(--xray-copied-rgb), 0.15) 0%,
-    rgba(var(--xray-copied-rgb), 0.1) 50%,
-    rgba(var(--xray-copied-rgb), 0.15) 100%
-  );
-  background-size: 200% 200%;
-  animation:
-    xray-gradient-shift 2s ease infinite,
-    xray-fade-in 0.3s ease-out;
-  color: var(--xray-copied);
-  border-color: rgba(var(--xray-copied-rgb), 0.2);
-}
-
-.xray-pill.copied::before {
-  background: conic-gradient(
-    from var(--xray-angle),
-    transparent 0%,
-    rgba(var(--xray-copied-rgb), 0) 20%,
-    rgba(var(--xray-copied-rgb), 0.4) 40%,
-    rgba(var(--xray-copied-rgb), 0.8) 50%,
-    rgba(var(--xray-copied-rgb), 0.4) 60%,
-    rgba(var(--xray-copied-rgb), 0) 80%,
-    transparent 100%
-  );
-  opacity: 1;
-  animation: xray-rotate-border 2s linear infinite;
 }
 
 .xray-pill.loading {
@@ -505,8 +473,6 @@
   .xray-pill::before,
   .xray-pill:hover,
   .xray-pill:hover::before,
-  .xray-pill.copied,
-  .xray-pill.copied::before,
   .xray-pill.loading .loading-text::before,
   .xray-pin,
   .xray-hover-card {

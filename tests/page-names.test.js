@@ -16,7 +16,10 @@ beforeAll(async () => {
   document.body.innerHTML = PLANTED;
   globalThis.chrome = {
     runtime: { id: 'test' },
-    storage: { local: { get: async () => ({}), set: async () => {}, remove: async () => {} } },
+    storage: {
+      local: { get: async () => ({}), set: async () => {}, remove: async () => {} },
+      onChanged: { addListener: () => {} },
+    },
   };
   const store = new Map();
   Object.defineProperty(globalThis, 'localStorage', {

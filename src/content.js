@@ -1,7 +1,6 @@
 const ICONS = {
   PIN: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17.5px; height:17.5px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`,
   GLOBE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`,
-  CHECKMARK: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:11.5px; height:11.5px;"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
 };
 
 const PLATFORM_ICONS = {
@@ -204,16 +203,9 @@ function describeResult(location, source) {
 }
 
 function renderPill(btn, location, source) {
-  if (btn._resetCopyTimer) {
-    clearTimeout(btn._resetCopyTimer);
-    btn._resetCopyTimer = null;
-  }
-
   const isAndroid = Boolean(source) && /android|play store/i.test(source);
-  const pillClass = isAndroid ? 'xray-pill android-device' : 'xray-pill';
-  const pillLabel = `Copy location: ${describeResult(location, source)}`;
-  btn.className = pillClass;
-  btn.setAttribute('aria-label', pillLabel);
+  btn.className = isAndroid ? 'xray-pill android-device' : 'xray-pill';
+  btn.setAttribute('aria-label', `Location: ${describeResult(location, source)}`);
   // Clears the click block left over from the loading state.
   btn.style.pointerEvents = '';
   btn.replaceChildren(createFlag(location), location || 'Unknown Loc');
@@ -224,52 +216,11 @@ function renderPill(btn, location, source) {
     btn.append(sourceText);
   }
 
-  const originalContent = [...btn.childNodes];
-  let isCopying = false;
-
+  // Replaces the pin's lookup click, and keeps a click on the pill from reaching X (it would open the profile).
   btn.onclick = (e) => {
-    // Only a real click or key press counts; a script on the page can fake the rest.
     if (!e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
-
-    if (isCopying || btn.classList.contains('copied')) return;
-    isCopying = true;
-
-    const locText = location || 'Unknown';
-    // The app name as plain text, so a link from X never puts tags on the clipboard.
-    const appText = source ? htmlText(source) : '';
-    const copyText = appText ? `${locText} (${appText})` : locText;
-
-    try {
-      const copyPromise = navigator.clipboard?.writeText?.(copyText);
-      if (!copyPromise) {
-        isCopying = false;
-        return;
-      }
-
-      Promise.resolve(copyPromise)
-        .then(() => {
-          btn.className = `${pillClass} copied`;
-          btn.setAttribute('aria-label', 'Copied');
-          btn.replaceChildren(createIcon(ICONS.CHECKMARK), ' Copied!');
-          announce(`Copied ${describeResult(location, source)}`);
-
-          clearTimeout(btn._resetCopyTimer);
-          btn._resetCopyTimer = setTimeout(() => {
-            btn.className = pillClass;
-            btn.setAttribute('aria-label', pillLabel);
-            btn.replaceChildren(...originalContent);
-            isCopying = false;
-            btn._resetCopyTimer = null;
-          }, COPIED_MS);
-        })
-        .catch(() => {
-          isCopying = false;
-        });
-    } catch {
-      isCopying = false;
-    }
   };
   btn.onmouseenter = btn.onfocus = () => showHoverCard(btn, location, source);
   btn.onmouseleave = btn.onblur = () => hideHoverCard();
@@ -297,7 +248,6 @@ const QUEUED_TEXT = 'Queued...';
 const NOT_AVAILABLE_TEXT = 'Not available';
 const LOOKUP_TIMEOUT_MS = 10000;
 const NOT_AVAILABLE_MS = 3000;
-const COPIED_MS = 1800;
 // Pause before the next queued lookup starts.
 const NEXT_LOOKUP_DELAY_MS = 500;
 const SAVED_PREFIX = 'loc:';
@@ -671,15 +621,43 @@ function startUI() {
     node.querySelectorAll(POST_SELECTOR).forEach((inner) => changedPosts.add(inner));
   }
 
+  function scheduleCheck() {
+    if (changedPosts.size && !checkScheduled) {
+      checkScheduled = true;
+      requestAnimationFrame(checkChangedPosts);
+    }
+  }
+
+  // Results cleared from the popup are forgotten here too: their pills turn back into pins.
+  // Pills that are still looking something up, or showing "Not available", are left to finish.
+  function forgetRemovedResults(changes, area) {
+    if (area !== 'local') return;
+    const handles = Object.keys(changes)
+      .filter((key) => key.startsWith(SAVED_PREFIX) && changes[key].newValue === undefined)
+      .map((key) => key.slice(SAVED_PREFIX.length).toLowerCase())
+      .filter((handle) => HANDLE_PATTERN.test(handle));
+    if (!handles.length) return;
+    hideHoverCard();
+    for (const handle of handles) {
+      locationMap.delete(handle);
+      document.querySelectorAll(`.xray-pill[data-handle="${handle}"]`).forEach((pill) => {
+        if (pill.classList.contains('loading') || pill.classList.contains('unavailable')) return;
+        const post = pill.closest(POST_SELECTOR);
+        pill.remove();
+        if (post) changedPosts.add(post);
+      });
+    }
+    scheduleCheck();
+  }
+
+  if (chrome.runtime?.id) chrome.storage.onChanged.addListener(forgetRemovedResults);
+
   const observer = new MutationObserver((mutations) => {
     // X removes posts as you scroll; the card must not stay behind for a pill that is gone.
     if (hoverTarget && !hoverTarget.isConnected) hideHoverCard();
     if (hintTarget && !hintTarget.isConnected) hideTooltip();
     for (const mutation of mutations) mutation.addedNodes.forEach(collectChangedPosts);
-    if (changedPosts.size && !checkScheduled) {
-      checkScheduled = true;
-      requestAnimationFrame(checkChangedPosts);
-    }
+    scheduleCheck();
   });
 
   observer.observe(document.body, { childList: true, subtree: true });

@@ -42,7 +42,10 @@ beforeEach(() => {
   storage.set('movedOldResults', true);
   readAllCount = 0;
   failReads = false;
-  globalThis.chrome = { runtime: { id: 'test' }, storage: { local: storageArea } };
+  globalThis.chrome = {
+    runtime: { id: 'test' },
+    storage: { local: storageArea, onChanged: { addListener: () => {} } },
+  };
   const local = new Map();
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,

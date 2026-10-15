@@ -10,6 +10,16 @@ const DAY = 24 * 60 * 60 * 1000;
 
 // Stand-in for chrome.storage.local, the extension's own storage.
 const extensionStorage = new Map();
+const storageListeners = [];
+// What Chrome tells the page when saved results are removed (for example by the popup's clear button).
+const removeSaved = (...handles) => {
+  const changes = {};
+  for (const handle of handles) {
+    changes[`loc:${handle}`] = { oldValue: extensionStorage.get(`loc:${handle}`) };
+    extensionStorage.delete(`loc:${handle}`);
+  }
+  storageListeners.forEach((fn) => fn(changes, 'local'));
+};
 const storageArea = {
   get: async (keys) => {
     if (keys === null || keys === undefined) return Object.fromEntries(extensionStorage);
@@ -27,7 +37,7 @@ const storageArea = {
 beforeAll(() => {
   globalThis.chrome = {
     runtime: { id: 'test' },
-    storage: { local: storageArea },
+    storage: { local: storageArea, onChanged: { addListener: (fn) => storageListeners.push(fn) } },
   };
   // Node's own localStorage replaces jsdom's and doesn't work without a file, so use a simple one.
   const store = new Map();
@@ -345,9 +355,7 @@ describe('pin lookups', () => {
     expect(card).not.toContain('United states');
   });
 
-  it('makes the result pill hoverable and copyable right away', async () => {
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+  it('makes the result pill hoverable right away', async () => {
     const pin = await addPost('fresh_acct');
     userClick(pin);
     found('fresh_acct', 'Japan', 'Web App');
@@ -357,11 +365,6 @@ describe('pin lookups', () => {
 
     pill.dispatchEvent(new MouseEvent('mouseenter'));
     expect(document.querySelector('.xray-hover-card').textContent).toContain('Japan');
-
-    userClick(pill);
-    expect(writeText).toHaveBeenCalledWith('Japan (Web App)');
-    await Promise.resolve();
-    expect(pill.textContent).toContain('Copied!');
   });
 
   it('positions the hover card to the right of the pill', async () => {
@@ -409,78 +412,6 @@ describe('pin lookups', () => {
     expect(card.classList.contains('android-device')).toBe(true);
     const cardWidth = card.offsetWidth || 210;
     expect(card.style.left).toBe(`${850 - cardWidth - 8}px`);
-  });
-
-  it('does not leave Copied! stuck on the pill after a double-click', async () => {
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    const pin = await addPost('dbl_acct');
-    userClick(pin);
-    found('dbl_acct', 'Germany', 'Web App');
-
-    const pill = document.querySelector('[data-handle="dbl_acct"]');
-    vi.useFakeTimers();
-
-    // Two rapid clicks
-    userClick(pill);
-    userClick(pill);
-
-    expect(writeText).toHaveBeenCalledTimes(1);
-    await Promise.resolve();
-    expect(pill.textContent).toContain('Copied!');
-
-    // After the timer expires, it should restore the original location, not stay stuck on Copied!
-    vi.advanceTimersByTime(1800);
-    expect(pill.textContent).toContain('Germany');
-    expect(pill.textContent).not.toContain('Copied!');
-    expect(pill.className).toBe('xray-pill');
-
-    // It can be copied again later
-    userClick(pill);
-    expect(writeText).toHaveBeenCalledTimes(2);
-    await Promise.resolve();
-    expect(pill.textContent).toContain('Copied!');
-
-    vi.advanceTimersByTime(1800);
-    expect(pill.textContent).toContain('Germany');
-    vi.useRealTimers();
-  });
-
-  it('copies Unknown instead of undefined when an account has an app but no location', async () => {
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-
-    const pin1 = await addPost('app_no_loc');
-    userClick(pin1);
-    found('app_no_loc', '', 'App Store');
-    const pill1 = document.querySelector('[data-handle="app_no_loc"]');
-    userClick(pill1);
-    expect(writeText).toHaveBeenCalledWith('Unknown (App Store)');
-
-    const pin2 = await addPost('no_app_no_loc');
-    userClick(pin2);
-    found('no_app_no_loc', '', '');
-    const pill2 = document.querySelector('[data-handle="no_app_no_loc"]');
-    userClick(pill2);
-    expect(writeText).toHaveBeenCalledWith('Unknown');
-  });
-
-  it('never shows Copied! when writing to the clipboard fails', async () => {
-    const writeText = vi.fn(() => Promise.reject(new Error('Permission denied')));
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-
-    const pin = await addPost('fail_copy_acct');
-    userClick(pin);
-    found('fail_copy_acct', 'France', 'iOS');
-
-    const pill = document.querySelector('[data-handle="fail_copy_acct"]');
-    userClick(pill);
-    await Promise.resolve();
-
-    expect(writeText).toHaveBeenCalledWith('France (iOS)');
-    expect(pill.className).toBe('xray-pill');
-    expect(pill.textContent).toContain('France');
-    expect(pill.textContent).not.toContain('Copied!');
   });
 
   it('never shows Not available when X answers before the 10 seconds are up', async () => {
@@ -1141,6 +1072,73 @@ describe('pin hint display', () => {
   });
 });
 
+describe('forgetting saved results that were cleared', () => {
+  afterEach(removePosts);
+
+  const pillFor = (handle) => document.querySelector(`[data-handle="${handle}"]`);
+
+  async function resultFor(handle) {
+    userClick(await addPost(handle));
+    found(handle, 'Peru', 'Web App');
+    await vi.waitFor(() => expect(saved()[handle]).toBeDefined());
+  }
+
+  it('turns the pill back into a pin when its saved result is cleared', async () => {
+    await resultFor('clear_one');
+    expect(pillFor('clear_one').classList.contains('xray-pill')).toBe(true);
+    removeSaved('clear_one');
+    await vi.waitFor(() => expect(pillFor('clear_one').classList.contains('xray-pin')).toBe(true));
+  });
+
+  it('only turns back the accounts that were cleared', async () => {
+    await resultFor('clear_a');
+    await resultFor('clear_b');
+    removeSaved('clear_a');
+    await vi.waitFor(() => expect(pillFor('clear_a').classList.contains('xray-pin')).toBe(true));
+    expect(pillFor('clear_b').classList.contains('xray-pill')).toBe(true);
+  });
+
+  it('lets the cleared account be looked up again', async () => {
+    await resultFor('clear_again');
+    removeSaved('clear_again');
+    await vi.waitFor(() => expect(pillFor('clear_again').classList.contains('xray-pin')).toBe(true));
+    userClick(pillFor('clear_again'));
+    expect(pillFor('clear_again').textContent).toContain('Locating');
+    found('clear_again', 'Peru', 'Web App');
+  });
+
+  it('closes the info card of a pill that was cleared', async () => {
+    await resultFor('clear_card');
+    pillFor('clear_card').dispatchEvent(new MouseEvent('mouseenter'));
+    await vi.waitFor(() => expect(document.querySelector('.xray-hover-card').classList.contains('show')).toBe(true));
+    removeSaved('clear_card');
+    expect(document.querySelector('.xray-hover-card').classList.contains('show')).toBe(false);
+  });
+
+  it('ignores changes that are not removed results', async () => {
+    await resultFor('clear_keep');
+    storageListeners.forEach((fn) => fn({ 'loc:clear_keep': { oldValue: {}, newValue: {} } }, 'local'));
+    storageListeners.forEach((fn) => fn({ 'loc:clear_keep': { oldValue: {} } }, 'sync'));
+    storageListeners.forEach((fn) => fn({ movedOldResults: { oldValue: true } }, 'local'));
+    storageListeners.forEach((fn) => fn({ 'loc:bad name!': { oldValue: {} } }, 'local'));
+    await settle();
+    expect(pillFor('clear_keep').classList.contains('xray-pill')).toBe(true);
+  });
+
+  it('leaves a pill that is still looking something up', async () => {
+    userClick(await addPost('clear_busy'));
+    expect(pillFor('clear_busy').classList.contains('loading')).toBe(true);
+    storageListeners.forEach((fn) => fn({ 'loc:clear_busy': { oldValue: {} } }, 'local'));
+    await settle();
+    expect(pillFor('clear_busy').classList.contains('loading')).toBe(true);
+    found('clear_busy', 'Peru', 'Web App');
+  });
+
+  it('does nothing when no post is on the page', () => {
+    expect(() => removeSaved('nobody_here')).not.toThrow();
+  });
+});
+
 describe('closing the hint and the card when leaving the tab', () => {
   afterEach(removePosts);
 
@@ -1605,47 +1603,6 @@ describe('the hidden lookup frame', () => {
   });
 });
 
-describe('what gets copied', () => {
-  afterEach(removePosts);
-
-  async function copiedFor(handle, location, source) {
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    const pin = await addPost(handle);
-    userClick(pin);
-    found(handle, location, source);
-    userClick(pin);
-    return writeText.mock.calls.map((call) => call[0]);
-  }
-
-  it('copies an app name that X sent as a link as plain text, with no tags', async () => {
-    const link = '<a href="https://help.x.com/en" rel="nofollow">Twitter for iPhone</a>';
-    expect(await copiedFor('copy_link', 'Peru', link)).toEqual(['Peru (Twitter for iPhone)']);
-  });
-
-  it('copies plain app names exactly as X sent them', async () => {
-    expect(await copiedFor('copy_web', 'Japan', 'Web App')).toEqual(['Japan (Web App)']);
-    expect(await copiedFor('copy_store', 'Chile', 'United States App Store')).toEqual([
-      'Chile (United States App Store)',
-    ]);
-  });
-
-  it('copies just the location when there is no app, or the app name has no text', async () => {
-    expect(await copiedFor('copy_none', 'Kenya', '')).toEqual(['Kenya']);
-    expect(await copiedFor('copy_empty', 'Spain', '<a href="https://x.com"></a>')).toEqual(['Spain']);
-  });
-
-  it('copies tags hidden in the app name as plain text, never as markup', async () => {
-    const [copied] = await copiedFor('copy_tags', 'Peru', '&lt;b&gt;FAKE&lt;/b&gt; <i>Web</i> App');
-    expect(copied).toBe('Peru (<b>FAKE</b> Web App)');
-    expect(copied).not.toContain('<i>');
-  });
-
-  it('still copies Unknown when there is no location but there is an app', async () => {
-    expect(await copiedFor('copy_noloc', '', '<b>App Store</b>')).toEqual(['Unknown (App Store)']);
-  });
-});
-
 describe('clicks made by page scripts', () => {
   afterEach(removePosts);
 
@@ -1677,19 +1634,29 @@ describe('clicks made by page scripts', () => {
     expect(lookedUp()).not.toMatch(/fake_[abc]/);
   });
 
-  it('does not copy when a script clicks a result pill, but a real click still copies', async () => {
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    const pin = await addPost('fake_copy');
+  it('keeps a real click on a result pill from reaching X, and changes nothing', async () => {
+    const pin = await addPost('click_pill');
     userClick(pin);
-    found('fake_copy', 'Chile', 'Web App');
+    found('click_pill', 'Chile', 'Web App');
+    const before = pin.textContent;
 
-    fakeClick(pin);
-    expect(writeText).not.toHaveBeenCalled();
+    const event = { isTrusted: true, preventDefault: vi.fn(), stopPropagation: vi.fn() };
+    pin.onclick(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
     expect(pin.className).toBe('xray-pill');
+    expect(pin.textContent).toBe(before);
+  });
 
+  it('ignores a script click on a result pill', async () => {
+    const pin = await addPost('fake_pill');
     userClick(pin);
-    expect(writeText).toHaveBeenCalledWith('Chile (Web App)');
+    found('fake_pill', 'Chile', 'Web App');
+
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    pin.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(pin.className).toBe('xray-pill');
   });
 });
 
@@ -1706,7 +1673,7 @@ describe('keyboard and screen reader use', () => {
     expect(label(pin)).toBe('Get Location & App Store');
   });
 
-  it('keeps the result pill a named button that says what it holds and what it does', async () => {
+  it('keeps the result pill a named button that says what it holds', async () => {
     const pin = await addPost('kbd_result');
     userClick(pin);
     found('kbd_result', 'Chile', 'Twitter for iPhone');
@@ -1714,14 +1681,14 @@ describe('keyboard and screen reader use', () => {
     const pill = document.querySelector('[data-handle="kbd_result"]');
     expect(pill).toBe(pin);
     expect(pill.tagName).toBe('BUTTON');
-    expect(label(pill)).toBe('Copy location: Chile, iPhone');
+    expect(label(pill)).toBe('Location: Chile, iPhone');
   });
 
   it('names a result with no location or app plainly', async () => {
     const pin = await addPost('kbd_unknown');
     userClick(pin);
     found('kbd_unknown', '', '');
-    expect(label(pin)).toBe('Copy location: Unknown');
+    expect(label(pin)).toBe('Location: Unknown');
   });
 
   it('keeps the name in step with each state and gives the pin back its name', async () => {
@@ -1735,23 +1702,6 @@ describe('keyboard and screen reader use', () => {
 
     vi.advanceTimersByTime(3000);
     expect(label(pin)).toBe('Get Location & App Store');
-  });
-
-  it('names the pill Copied while it says Copied! and restores its name after', async () => {
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    const pin = await addPost('kbd_copy');
-    userClick(pin);
-    found('kbd_copy', 'Japan', 'Web App');
-    vi.useFakeTimers();
-
-    userClick(pin);
-    await Promise.resolve();
-    expect(label(pin)).toBe('Copied');
-    expect(spoken()).toBe('Copied Japan, Web');
-
-    vi.advanceTimersByTime(1800);
-    expect(label(pin)).toBe('Copy location: Japan, Web');
   });
 
   it('says out loud when a lookup starts, finishes or fails', async () => {

@@ -27,7 +27,6 @@
 *   <img src="screenshots/icons/pin.svg" width="16" height="16" align="absmiddle"> **User Location** - See where they're based (from their public profile)
 *   <img src="screenshots/icons/apple.svg" width="14" height="14" align="absmiddle"> **Device Platform** - Know if they're on iOS, Android, or Web
 *   <img src="screenshots/icons/globe.svg" width="16" height="16" align="absmiddle"> **Country Flags** - Visual representation with country flags
-*   **Quick Copy** - One-click copy to clipboard
 
 **100% FREE. Unlimited usage. No subscriptions. No tracking.**
 
@@ -69,7 +68,6 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 1.  **Browse Twitter/X normally** - Extension adds a small location icon <img src="screenshots/icons/pin.svg" width="16" height="16" align="absmiddle"> next to usernames
 2.  **Click the location icon** - Instantly loads the user's public location data
 3.  **View the info** - See their location with country flag and platform (iOS/Android/Web)
-4.  **Copy if needed** - Click the location pill to copy to clipboard
 
 **That's it!** Simple, fast, and effective.
 
@@ -149,7 +147,6 @@ X-Ray's **click-to-reveal** approach means:
 1.  Go to [twitter.com](https://twitter.com) or [x.com](https://x.com)
 2.  Look for the location icon <img src="screenshots/icons/pin.svg" width="16" height="16" align="absmiddle"> next to any username (or near the Grok/More buttons)
 3.  Click it to reveal location and platform
-4.  Click the location pill to copy to clipboard
 
 ### Pro Tips
 *   **Hover** over the icon to see a "Get Location & App Store" tooltip
@@ -166,7 +163,7 @@ X-Ray's **click-to-reveal** approach means:
 *   **Manifest V3** - Latest Chrome extension standard
 *   **Vanilla JavaScript** - No frameworks, pure performance
 *   **CSS3 Animations** - Smooth, GPU-accelerated effects
-*   **Modern Web APIs** - Clipboard, MutationObserver, etc.
+*   **Modern Web APIs** - MutationObserver, etc.
 
 ### Permissions Explained
 *   **`declarativeNetRequest`** - Lets the profile's About page load in a hidden frame by removing X's "don't show in a frame" setting for that page only; all of X's other protections stay on
