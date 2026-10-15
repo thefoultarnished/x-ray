@@ -191,9 +191,7 @@
     rgba(var(--xray-accent-rgb), 0.18) 100%
   );
   background-size: 200% 200%;
-  animation:
-    xray-gradient-shift 3s ease infinite,
-    xray-fade-in 0.3s ease-out;
+  animation: xray-gradient-shift 3s ease infinite;
   border-color: rgba(var(--xray-accent-rgb), 0.45);
   box-shadow:
     0 0 0 1px rgba(var(--xray-accent-rgb), 0.2),
@@ -255,9 +253,7 @@
     rgba(var(--xray-android-rgb), 0.18) 100%
   );
   background-size: 200% 200%;
-  animation:
-    xray-gradient-shift 3s ease infinite,
-    xray-fade-in 0.3s ease-out;
+  animation: xray-gradient-shift 3s ease infinite;
   border-color: rgba(var(--xray-android-rgb), 0.45);
   box-shadow:
     0 0 0 1px rgba(var(--xray-android-rgb), 0.2),

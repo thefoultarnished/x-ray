@@ -121,6 +121,45 @@ describe('tidying saved results', () => {
   });
 });
 
+describe('starting up', () => {
+  it('reads the saved results once, with no separate read for the moved-results flag', async () => {
+    const get = vi.spyOn(storageArea, 'get');
+    storage.set('loc:one', result(1));
+    openX();
+    await vi.waitFor(() => expect(readAllCount).toBe(1));
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(get).toHaveBeenCalledTimes(1);
+    get.mockRestore();
+  });
+
+  it('after moving results saved by an older version, reads again so they show at once', async () => {
+    storage.delete('movedOldResults');
+    localStorage.setItem(
+      'x_location_cache',
+      JSON.stringify({ OldOne: { loc: 'Chile', src: 'Web App', timestamp: Date.now() - DAY } })
+    );
+    openX();
+
+    await vi.waitFor(() => expect(storage.get('movedOldResults')).toBe(true));
+    expect(savedKeys()).toContain('OldOne');
+    await vi.waitFor(() => expect(readAllCount).toBe(2));
+  });
+
+  it('keeps the newest result when the same account was saved under different capitals', async () => {
+    storage.set('loc:SameAcct', { loc: 'Peru', src: 'Web', timestamp: Date.now() - 5 * DAY });
+    storage.set('loc:sameacct', { loc: 'Chile', src: 'Web', timestamp: Date.now() - 1 * DAY });
+    openX();
+
+    const article = document.createElement('article');
+    article.dataset.testid = 'tweet';
+    article.innerHTML =
+      '<div data-testid="User-Name"><a href="/SameAcct">x</a></div><div><div data-testid="caret"></div></div>';
+    document.body.append(article);
+    await vi.waitFor(() => expect(article.querySelector('button')?.textContent).toContain('Chile'));
+  });
+});
+
 describe('saving a result', () => {
   it('does not read every saved result again', async () => {
     for (let i = 0; i < 50; i++) storage.set(`loc:acct${i}`, result(1));

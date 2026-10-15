@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>What's New | X-Ray for Twitter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    color-scheme: dark;
+    --bg: #0a0d12;
+    --surface: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-soft: rgba(255, 255, 255, 0.07);
+    --accent: #1d9bf0;
+    --text: #f2f5f8;
+    --text-2: #b4bdc9;
+    --text-3: #7d8896;
+    --new: #a78bfa;
+    --improved: #60a5fa;
+    --fixed: #4ade80;
+    --radius: 10px;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 56px 24px;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 44px;
+  }
+
+  .header img {
+    width: 52px;
+    height: 52px;
+  }
+
+  .header h1 {
+    font-size: 30px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.6px;
+  }
+
+  .header p {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: 3px;
+  }
+
+  .header-links {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .header-links a {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .header-links a:hover,
+  .header-links a:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    outline: none;
+  }
+
+  .release-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .version-badge {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    background: color-mix(in srgb, var(--accent) 35%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 80%, white);
+    padding: 4px 14px;
+    border-radius: 20px;
+  }
+
+  .release-date {
+    font-size: 14px;
+    color: var(--text-3);
+  }
+
+  .lede {
+    font-size: 14px;
+    color: var(--text-2);
+    margin-bottom: 24px;
+  }
+
+  .section {
+    --tone: var(--new);
+    margin-bottom: 28px;
+  }
+
+  .section-new { --tone: var(--new); }
+  .section-improved { --tone: var(--improved); }
+  .section-fixed { --tone: var(--fixed); }
+
+  .section-title {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tone) 35%, transparent);
+    padding: 4px 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+
+  .items {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .item:last-child { border-bottom: none; }
+
+  .item::before {
+    content: "";
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    margin-top: 8px;
+    border-radius: 50%;
+    background: var(--tone);
+  }
+
+  .item-text {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .item-text strong {
+    display: block;
+    font-size: 15px;
+    color: #fff;
+    font-weight: 650;
+    margin-bottom: 2px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 44px 0;
+  }
+
+  .footer {
+    font-size: 13px;
+    color: var(--text-3);
+    text-align: center;
+  }
+
+  .footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .footer a:hover,
+  .footer a:focus-visible { text-decoration: underline; }
+
+  @media (max-width: 520px) {
+    body { padding: 40px 18px 80px; }
+    .header { flex-wrap: wrap; }
+    .header-links { margin-left: 0; justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <img src="icons/icon128.png" width="52" height="52" alt="X-Ray logo" />
+    <div>
+      <h1>What's New</h1>
+      <p>X-Ray for Twitter</p>
+    </div>
+    <div class="header-links">
+      <a href="https://ko-fi.com/thefoultarnished" target="_blank" rel="noopener noreferrer">&#9749; Support on Ko-fi</a>
+    </div>
+  </div>
+
+  <!-- v1.5 -->
+  <div class="release">
+    <div class="release-header">
+      <span class="version-badge">v1.5</span>
+      <span class="release-date">Oct 14, 2026</span>
+    </div>
+    <p class="lede">A toolbar popup, and fixes for results that got stuck or couldn't be clicked. Needs Chrome, Edge or Brave 130 or newer.</p>
+
+      <div class="section section-new">
+        <div class="section-title">New</div>
+        <div class="items">
+          <div class="item">
+            <span class="item-text"><strong>Toolbar popup</strong>Click the X-Ray icon to see how to use it, open X, or read what's new.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section section-improved">
+        <div class="section-title">Improved</div>
+        <div class="items">
+          <div class="item">
+            <span class="item-text"><strong>New logo</strong>X-Ray has a fresh icon: a blue bird with a location pin on a dark rounded square.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Steady pins and pills</strong>The pin icon and result pill stay in place instead of scaling or moving when hovered, showing a soft color highlight instead.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Side info card</strong>The details popup now opens to the right of the pill instead of covering the text above or below, and automatically moves to the left if there is not enough room.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Matching platform outlines</strong>Result pills and their detail cards now share matching colored outlines and subtle glows (green for Android, blue for iOS and web) so you can tell platforms apart at a glance.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section section-fixed">
+        <div class="section-title">Fixed</div>
+        <div class="items">
+          <div class="item">
+            <span class="item-text"><strong>No more stuck "Locating..."</strong>If X doesn't answer within 10 seconds, the pill shows "Not available" for a moment and then turns back into a pin you can click to try again.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Results work right away</strong>Right after a location appears, you can hover it for details and click it to copy, without reloading the page.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Safer results</strong>Locations and app names from X are always shown as plain text, so they can never add buttons, links or anything else to the page.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>No more fake results</strong>X-Ray now only accepts a location from its own lookup, for the account you clicked, so other scripts on X can't show fake locations or interrupt a lookup.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>X keeps its own protections</strong>X-Ray used to switch off X's safety settings on every X page shown inside a frame. Now it only allows the one profile page it looks up to load in its hidden frame, and leaves everything else as X intended.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Saved results now expire</strong>Locations you looked up are kept for 90 days from when you looked them up, up to 10,000, instead of piling up forever.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Two X tabs no longer erase each other's results</strong>A lookup in one tab no longer wipes out results saved in another.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Your lookups stay private</strong>Saved results now live in X-Ray's own storage, so X can no longer see which accounts you looked up. Results you already had are moved over automatically.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>One odd result can't hide all pins</strong>If X ever sends something unexpected for one account, only that account shows as unknown; every other post still gets its pin.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>The right flag for every country</strong>Flags now match the full country name, so Belarus no longer shows the US flag and Canada, Mexico and the Caribbean get their own flags. Over 250 countries and territories are covered, and accounts based in Europe get the EU flag.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>No more doubled store country</strong>An app store country such as "Russia App Store" now shows as just its flag, and the info card spells country names properly.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>No more stuck "Copied!" message</strong>Clicking a result pill twice quickly no longer leaves it stuck showing "Copied!", accounts with no location copy as unknown instead of undefined, and "Copied!" only appears when copying succeeded.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Works with the keyboard</strong>You can Tab to the pin and result pills, press Enter or Space to use them, see where focus is, and screen readers now read out each button's name and the lookup result.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Capital letters don't matter</strong>"@SpaceX" and "@spacex" are now the same account, so they share one result and are looked up once.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Pin hint opens above near the bottom</strong>When a pin is close to the bottom of the window, its hint now opens above the pin instead of being cut off.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Faster saving</strong>X-Ray no longer rereads every saved location after each lookup. Old and extra results are cleared once when X loads instead.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Escape closes the hint and the card</strong>When a pin or result pill has keyboard focus, pressing Escape hides its hint or info card without moving focus away.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Web accounts show their country</strong>For accounts that use the web app, the info card's Platform row now shows their location with its flag, such as "Peru · Web", instead of "Unknown".</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Clean copied text</strong>If X sends an account's app name as a link, copying a result now gives you just the words, such as "Peru (Twitter for iPhone)", with no code around it.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Lighter on X's other frames</strong>Only the main X page now loads X-Ray's flags, script and styles. Other frames on X get just one tiny script, so they no longer each load the whole extension.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>No double lookups</strong>If you click a pin while the same account is already being looked up, the new pin now joins that lookup instead of sending a second request to X. Posts that appear during a lookup show "Locating..." right away.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>No pins that can't work</strong>X-Ray now adds a pin only when a post's name link is a real account name, so posts with other kinds of links no longer get a pin that ends on "Not available".</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Pin hint stays on screen</strong>The "Get Location &amp; App Store" hint now stays inside the window near the right edge, goes away if X removes the post you were pointing at, and no longer pops up over a pill that is already looking up.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>No more errors inside X's frames</strong>X-Ray no longer tries to read downloads and other non-text answers while looking up a profile, which used to cause error messages in the page's console.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Smoother scrolling</strong>X-Ray now only checks new posts, and does it once per screen refresh, instead of re-checking every post on the page each time anything on X changes.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Lighter on your computer</strong>The glowing border on result pills now only moves while you hover over a pill, instead of spinning on every pill all the time. If your system is set to reduce motion, pill animations are turned off.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>App store regions are named</strong>When an account's app store is in a region and not a country, such as "South Asia", the info card now shows that name, matching the result pill, instead of "Unknown".</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Tidier info card</strong>The details card no longer shows a stray dot when an account has no app info, always stays inside the window, and disappears when X removes the post you were hovering.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Every account name works</strong>Accounts with names like "constructor" or "toString" no longer show "Unknown Loc" right away, and can be looked up like any other account.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>No leftover hidden frame</strong>X-Ray's hidden lookup frame is now removed from the page as soon as a lookup finishes or times out, instead of staying until you close the tab.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Only your clicks count</strong>A script on X can no longer click every pin for you to start many lookups in the background, or copy from a result pill. Only a real click or key press works.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Odd page elements can't switch X-Ray off</strong>A script on X that adds an element with a name X-Ray used to look for can no longer hide every pin or get the info card written into its own element.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Flags stay private</strong>Country flags are now built into X-Ray instead of loaded from another website, so nobody else can see your IP address or which countries you look up.</span>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- v1.0 -->
+  <div class="release">
+    <div class="release-header">
+      <span class="version-badge">v1.0</span>
+      <span class="release-date">Dec 3, 2025</span>
+    </div>
+    <p class="lede">First release.</p>
+
+      <div class="section section-new">
+        <div class="section-title">New</div>
+        <div class="items">
+          <div class="item">
+            <span class="item-text"><strong>Location on demand</strong>Click the pin next to any post to see where the account is based and which app it posts from.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Country flags</strong>Locations show with their country flag.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>One-click copy</strong>Click a result to copy it.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Remembers results</strong>Locations you looked up show instantly next time, for up to 30 days.</span>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="footer">
+    <p>Enjoying X-Ray? <a href="https://ko-fi.com/thefoultarnished" target="_blank" rel="noopener noreferrer">Buy me a coffee</a></p>
+  </div>
+
+</div>
+</body>
+</html>

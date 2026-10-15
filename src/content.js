@@ -290,6 +290,8 @@ function announce(text) {
 }
 let scraperFrame = null;
 let busyHandle = null;
+// The 10 second limit of the lookup that is running now.
+let lookupTimer = null;
 const LOADING_TEXT = 'Locating...';
 const QUEUED_TEXT = 'Queued...';
 const NOT_AVAILABLE_TEXT = 'Not available';
@@ -346,15 +348,19 @@ async function loadSavedResults() {
   try {
     const store = savedStore();
     if (!store) return;
-    const { [MOVED_OLD_RESULTS_KEY]: alreadyMoved } = await store.get(MOVED_OLD_RESULTS_KEY);
-    if (!alreadyMoved) {
+    let everything = await store.get(null);
+    if (!everything[MOVED_OLD_RESULTS_KEY]) {
       await moveOldSavedResults(store, now);
       await store.set({ [MOVED_OLD_RESULTS_KEY]: true });
+      // Read again, once, so the moved results are included.
+      everything = await store.get(null);
     }
     localStorage.removeItem(OLD_CACHE_KEY);
-    const saved = Object.entries(await store.get(null)).filter(([key]) => key.startsWith(SAVED_PREFIX));
-    for (const [key, entry] of saved) {
-      if (isUsable(entry, now)) locationMap.set(key.slice(SAVED_PREFIX.length), { loc: entry.loc, src: entry.src });
+    const saved = Object.entries(everything).filter(([key]) => key.startsWith(SAVED_PREFIX));
+    // Oldest first, so when results saved under different capitals meet, the newest one wins.
+    const usable = saved.filter(([, entry]) => isUsable(entry, now)).sort((a, b) => a[1].timestamp - b[1].timestamp);
+    for (const [key, entry] of usable) {
+      locationMap.set(key.slice(SAVED_PREFIX.length).toLowerCase(), { loc: entry.loc, src: entry.src });
     }
     // Not waited for, so tidying a big list never delays the first pins.
     pruneSavedResults(store, saved, now).catch((e) => console.warn('[X-Ray] Could not tidy saved locations:', e));
@@ -415,6 +421,7 @@ window.addEventListener('message', (event) => {
 
 // Marks the lookup as done, then removes the hidden frame unless more lookups are waiting.
 function finishLookup() {
+  clearTimeout(lookupTimer);
   busyHandle = null;
   isProcessingQueue = false;
   if (!scraperFrame) return;
@@ -458,24 +465,19 @@ let isProcessingQueue = false;
 // Turns a pin into a pill that says it is waiting for a result.
 function showLoading(btn, text) {
   btn.style.transition = 'none';
-  btn.innerHTML = '';
+  btn.replaceChildren();
   btn.className = 'xray-pill loading';
   btn.setAttribute('aria-label', text);
   btn.style.pointerEvents = 'none';
   btn.offsetHeight;
   btn.style.transition = '';
 
-  const globeIcon = document.createElement('span');
-  globeIcon.className = 'xray-globe';
-  globeIcon.innerHTML = ICONS.GLOBE;
-
   const loadingText = document.createElement('span');
   loadingText.className = 'loading-text';
   loadingText.textContent = text;
   loadingText.setAttribute('data-text', text);
 
-  btn.appendChild(globeIcon);
-  btn.appendChild(loadingText);
+  btn.append(createGlobe(), loadingText);
 }
 
 // What a pin for this account should say right now, or null when no lookup for it is running or waiting.
@@ -526,8 +528,7 @@ function loadAboutPage(handle) {
 
   iframe.src = `${window.location.origin}/${handle}/about`;
 
-  setTimeout(() => {
-    if (busyHandle !== handle) return;
+  lookupTimer = setTimeout(() => {
     console.warn(`[X-Ray] No location data for @${handle} after ${LOOKUP_TIMEOUT_MS / 1000}s`);
     document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
     announce(`Not available for @${handle}`);
@@ -546,7 +547,7 @@ function showNotAvailable(btn) {
     if (!btn.isConnected || !btn.classList.contains('unavailable')) return;
     btn.className = 'xray-pin';
     btn.setAttribute('aria-label', PIN_LABEL);
-    btn.innerHTML = ICONS.PIN;
+    btn.replaceChildren(createIcon(ICONS.PIN));
     btn.style.pointerEvents = '';
   }, NOT_AVAILABLE_MS);
 }
@@ -585,9 +586,11 @@ function startUI() {
 
     const userLink = article.querySelector('[data-testid="User-Name"] a[href^="/"]');
     if (!userLink) return;
-    const handle = userLink.getAttribute('href').replace('/', '');
+    const linkName = userLink.getAttribute('href').replace('/', '');
     // Links like "/name/status/1" are not profiles; a pin there could never finish.
-    if (!HANDLE_PATTERN.test(handle)) return;
+    if (!HANDLE_PATTERN.test(linkName)) return;
+    // "@SpaceX" and "@spacex" are one account, so they share one saved result and one lookup.
+    const handle = linkName.toLowerCase();
 
     const caret = article.querySelector('[data-testid="caret"]');
     const more = article.querySelector('div[aria-label="More"]');
@@ -606,7 +609,7 @@ function startUI() {
     } else {
       btn.className = 'xray-pin';
       btn.setAttribute('aria-label', PIN_LABEL);
-      btn.innerHTML = ICONS.PIN;
+      btn.replaceChildren(createIcon(ICONS.PIN));
 
       btn.onclick = (e) => {
         if (!e.isTrusted) return;
@@ -675,6 +678,8 @@ function startUI() {
 let hintTarget = null;
 // Width used until the browser can measure the hint.
 const HINT_WIDTH_FALLBACK = 170;
+const HINT_HEIGHT_FALLBACK = 30;
+const HINT_GAP = 5;
 
 function showTooltip(el, text) {
   hintTarget = el;
@@ -682,9 +687,14 @@ function showTooltip(el, text) {
   tooltip.style.display = 'block';
   const rect = el.getBoundingClientRect();
   const width = tooltip.offsetWidth || HINT_WIDTH_FALLBACK;
+  const height = tooltip.offsetHeight || HINT_HEIGHT_FALLBACK;
   // Pins sit next to the post menu, close to the window edge in narrow windows.
   const maxLeft = window.scrollX + window.innerWidth - width - CARD_MARGIN;
-  tooltip.style.top = rect.bottom + window.scrollY + 5 + 'px';
+  // Under the pin, or above it when the window ends first and there is room above.
+  const needed = height + HINT_GAP + CARD_MARGIN;
+  const opensAbove = rect.bottom + needed > window.innerHeight && rect.top >= needed;
+  const top = opensAbove ? rect.top - height - HINT_GAP : rect.bottom + HINT_GAP;
+  tooltip.style.top = top + window.scrollY + 'px';
   tooltip.style.left = Math.max(window.scrollX + CARD_MARGIN, Math.min(maxLeft, rect.left + window.scrollX)) + 'px';
 }
 

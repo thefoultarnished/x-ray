@@ -1,8 +1,7 @@
 const LINKS = {
-  feedbackLink: 'https://github.com/thefoultarnished/x-ray/issues',
   openX: 'https://x.com/',
   // Bundled page, opened in a tab so the click doesn't navigate the popup itself.
-  appVersion: chrome.runtime.getURL('changelogs.html'),
+  appVersion: chrome.runtime.getURL('changelog.html'),
 };
 
 for (const [id, url] of Object.entries(LINKS)) {

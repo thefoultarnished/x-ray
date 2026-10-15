@@ -599,7 +599,7 @@ describe('answers that are not from the lookup', () => {
     send({ type: 'X_LOCATION_FOUND', handle: 'caseacct', location: 'Chile', source: 'Web App' }, lookupFrame());
 
     expect(pin.textContent).toContain('Chile');
-    await vi.waitFor(() => expect(saved()).toHaveProperty('CaseAcct'));
+    await vi.waitFor(() => expect(saved()).toHaveProperty('caseacct'));
   });
 
   it('ignores account names that are not real X usernames, leaving the page alone', async () => {
@@ -936,7 +936,7 @@ describe('links that are not account names', () => {
   it.each(['/some_user', '/A1', '/a', '/abcdefghijklmno', '/User_Name_9'])('gives %s a pin', async (href) => {
     const article = postWithLink(href);
     await vi.waitFor(() => expect(article.querySelectorAll('button')).toHaveLength(1));
-    expect(article.querySelector('button').dataset.handle).toBe(href.slice(1));
+    expect(article.querySelector('button').dataset.handle).toBe(href.slice(1).toLowerCase());
   });
 
   it.each([
@@ -968,6 +968,92 @@ describe('links that are not account names', () => {
   });
 });
 
+describe('the same account written with different capitals', () => {
+  afterEach(removePosts);
+
+  function watchLookups() {
+    const loaded = [];
+    const set = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src').set;
+    vi.spyOn(HTMLIFrameElement.prototype, 'src', 'set').mockImplementation(function (url) {
+      loaded.push(url);
+      return set.call(this, url);
+    });
+    return () => loaded.filter((url) => url.endsWith('/about'));
+  }
+
+  it('shows an already looked up account as a result, whatever capitals the link uses', async () => {
+    const first = await addPost('SpaceXtest');
+    userClick(first);
+    found('spacextest', 'United States', 'Web App');
+
+    const second = await addKnownPost('SPACEXTEST');
+    expect(second.textContent).toContain('United States');
+    const third = await addKnownPost('spacextest');
+    expect(third.textContent).toContain('United States');
+  });
+
+  it('looks the account up once, even when two posts spell it differently', async () => {
+    const lookups = watchLookups();
+    const first = await addPost('MixedCase');
+    const second = await addPost('mixedcase');
+    userClick(first);
+    userClick(second);
+    expect(lookups()).toHaveLength(1);
+
+    found('mixedcase', 'Chile', 'Web App');
+    expect(first.textContent).toContain('Chile');
+    expect(second.textContent).toContain('Chile');
+    vi.restoreAllMocks();
+  });
+
+  it('saves one result for the account, under the lowercase name', async () => {
+    const pin = await addPost('SaveCase');
+    userClick(pin);
+    found('SaveCase', 'Peru', 'Web App');
+    await vi.waitFor(() => expect(saved()).toHaveProperty('savecase'));
+    expect(saved()).not.toHaveProperty('SaveCase');
+  });
+
+  it('still keeps different accounts apart', async () => {
+    const a = await addPost('case_one');
+    const b = await addPost('case_two');
+    userClick(a);
+    found('case_one', 'Peru', 'Web App');
+    expect(b.className).toBe('xray-pin');
+  });
+});
+
+describe('the 10 second limit of a lookup', () => {
+  afterEach(removePosts);
+
+  it('is cancelled once the lookup finishes, so it cannot cut a later lookup short', async () => {
+    const first = await addPost('timer_one');
+    const second = await addPost('timer_two');
+    vi.useFakeTimers();
+    userClick(first);
+    vi.advanceTimersByTime(2000);
+    found('timer_one', 'Peru', 'Web App');
+
+    vi.advanceTimersByTime(500);
+    userClick(second);
+    // The first lookup's 10 seconds end here; the second one is still running.
+    vi.advanceTimersByTime(7600);
+    expect(second.textContent.trim()).toBe('Locating...');
+    found('timer_two', 'Chile', 'Web App');
+    expect(second.textContent).toContain('Chile');
+  });
+
+  it('still ends a lookup that gets no answer after its own 10 seconds', async () => {
+    const pin = await addPost('timer_slow');
+    vi.useFakeTimers();
+    userClick(pin);
+    vi.advanceTimersByTime(9999);
+    expect(pin.textContent.trim()).toBe('Locating...');
+    vi.advanceTimersByTime(1);
+    expect(pin.textContent.trim()).toBe('Not available');
+  });
+});
+
 describe('pin hint display', () => {
   const originalWidth = window.innerWidth;
   afterEach(() => {
@@ -990,6 +1076,23 @@ describe('pin hint display', () => {
     expect(hint().textContent).toBe('Get Location & App Store');
     expect(hint().style.left).toBe('100px');
     expect(hint().style.top).toBe('85px');
+  });
+
+  it('opens the hint above the pin when the window ends before the hint does', async () => {
+    const pin = await pinAt('hint_bottom', { top: window.innerHeight - 30, bottom: window.innerHeight - 10 });
+    pin.dispatchEvent(new MouseEvent('mouseenter'));
+    // The hint is 30 px tall without a real layout, plus a 5 px gap, above the pin's top edge.
+    expect(parseFloat(hint().style.top)).toBe(window.innerHeight - 30 - 30 - 5);
+  });
+
+  it('keeps the hint under the pin when there is room below, or no room above either', async () => {
+    const roomy = await pinAt('hint_below', { top: 100, bottom: 120 });
+    roomy.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(parseFloat(hint().style.top)).toBe(125);
+
+    const cramped = await pinAt('hint_cramped', { top: 5, bottom: window.innerHeight - 5 });
+    cramped.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(parseFloat(hint().style.top)).toBe(window.innerHeight - 5 + 5);
   });
 
   it('keeps the hint inside the window when the pin is near the right edge', async () => {
