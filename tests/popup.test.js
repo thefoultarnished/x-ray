@@ -361,7 +361,7 @@ describe('the popup layout', () => {
     expect(document.getElementById('autoDelay').getAttribute('aria-describedby')).toBe('delayInfo');
   });
 
-  it('dims the wait card while auto reveal is off and wakes it when it is on', async () => {
+  it('hides the cooldown card while auto reveal is off and shows it when it is on', async () => {
     await openPopup({});
     const card = document.getElementById('delayCard');
     const toggle = document.getElementById('autoReveal');
@@ -370,11 +370,29 @@ describe('the popup layout', () => {
       toggle.dispatchEvent(new Event('change'));
       await flush();
     };
-    expect(card.classList.contains('off')).toBe(true);
+    expect(card.hidden).toBe(true);
     await flip();
-    expect(card.classList.contains('off')).toBe(false);
+    expect(card.hidden).toBe(false);
     await flip();
-    expect(card.classList.contains('off')).toBe(true);
+    expect(card.hidden).toBe(true);
+  });
+
+  it('shows the cooldown card right away when auto reveal was already on', async () => {
+    await openPopup({}, { sync: { autoReveal: true, autoDelaySec: 3 } });
+    expect(document.getElementById('delayCard').hidden).toBe(false);
+    expect(document.getElementById('autoDelay').value).toBe('3');
+  });
+
+  it('puts a small warning icon in front of the yellow warning, hidden from screen readers', async () => {
+    await openPopup({});
+    const warning = document.getElementById('autoWarning');
+    const icon = warning.querySelector('svg');
+    expect(icon).not.toBeNull();
+    expect(icon.getAttribute('aria-hidden')).toBe('true');
+    expect(warning.firstElementChild).toBe(icon);
+    expect(warning.textContent.trim()).toBe(
+      'Warning - X may rate limit or flag your account for this. Use it at your own risk.'
+    );
   });
 
   it('shows the footer text', async () => {

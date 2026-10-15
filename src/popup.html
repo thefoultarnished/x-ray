@@ -152,8 +152,16 @@
     }
 
     .card-note.warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
       margin-top: 4px;
       color: var(--warning-text);
+    }
+
+    .card-note.warning svg {
+      flex-shrink: 0;
+      margin-top: 3px;
     }
 
     .card input[type='checkbox'] {
@@ -215,10 +223,6 @@
       background: var(--surface);
       border-color: var(--border);
       cursor: default;
-    }
-
-    .card.off .card-title {
-      color: var(--text-3);
     }
 
     .card select {
@@ -340,11 +344,12 @@
       </div>
       <p class="card-note" id="autoInfo">Auto reveal location while scrolling X.</p>
       <p class="card-note warning" id="autoWarning">
-        Warning - X may rate limit or flag your account for this. Use it at your own risk.
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19z"/><path d="M12 10v4"/><path d="M12 17.5h.01"/></svg>
+        <span>Warning - X may rate limit or flag your account for this. Use it at your own risk.</span>
       </p>
     </section>
 
-    <section class="card off" id="delayCard" aria-labelledby="delayTitle">
+    <section class="card" id="delayCard" aria-labelledby="delayTitle" hidden>
       <div class="card-row">
         <label for="autoDelay" class="card-title" id="delayTitle">Auto Lookup Cooldown</label>
         <select id="autoDelay" aria-describedby="delayInfo" disabled></select>

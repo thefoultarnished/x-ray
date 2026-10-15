@@ -97,7 +97,7 @@ function showSettings(raw) {
   autoReveal.checked = settings[SETTINGS.AUTO_REVEAL];
   autoDelay.value = String(settings[SETTINGS.AUTO_DELAY_SEC]);
   autoDelay.disabled = !autoReveal.checked;
-  delayCard.classList.toggle('off', !autoReveal.checked);
+  delayCard.hidden = !autoReveal.checked;
 }
 
 async function loadSettings() {
