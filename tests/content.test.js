@@ -54,6 +54,9 @@ beforeAll(() => {
   ({ createFlag, createSourceContent } = require('../src/content.js'));
 });
 
+// jsdom marks every click it makes as untrusted, so this stands in for a real click or key press.
+const userClick = (el) => el.onclick({ isTrusted: true, preventDefault() {}, stopPropagation() {} });
+
 // Puts helper output into a container so assertions check what the user sees.
 function render(node) {
   const el = document.createElement('div');
@@ -297,7 +300,7 @@ describe('pin lookups', () => {
   it('keeps Locating for 10 seconds, shows Not available for 3 seconds, then the pin again', async () => {
     const pin = await addPost('slow_acct');
     vi.useFakeTimers();
-    pin.click();
+    userClick(pin);
 
     vi.advanceTimersByTime(9999);
     expect(state(pin)).toEqual({ cls: 'xray-pill loading', text: 'Locating...', clickable: false });
@@ -313,14 +316,14 @@ describe('pin lookups', () => {
     expect(pin.querySelector('svg')).not.toBeNull();
 
     // The restored pin starts a new lookup.
-    pin.click();
+    userClick(pin);
     expect(state(pin)).toEqual({ cls: 'xray-pill loading', text: 'Locating...', clickable: false });
     vi.advanceTimersByTime(13000);
   });
 
   it('shows the store country by its proper name in the info card', async () => {
     const pin = await addPost('store_acct');
-    pin.click();
+    userClick(pin);
     found('store_acct', 'India', 'United States App Store');
     document.querySelector('[data-handle="store_acct"]').dispatchEvent(new MouseEvent('mouseenter'));
 
@@ -333,7 +336,7 @@ describe('pin lookups', () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     const pin = await addPost('fresh_acct');
-    pin.click();
+    userClick(pin);
     found('fresh_acct', 'Japan', 'Web App');
 
     const pill = document.querySelector('[data-handle="fresh_acct"]');
@@ -342,7 +345,7 @@ describe('pin lookups', () => {
     pill.dispatchEvent(new MouseEvent('mouseenter'));
     expect(document.querySelector('.xray-hover-card').textContent).toContain('Japan');
 
-    pill.click();
+    userClick(pill);
     expect(writeText).toHaveBeenCalledWith('Japan (Web App)');
     await Promise.resolve();
     expect(pill.textContent).toContain('Copied!');
@@ -350,7 +353,7 @@ describe('pin lookups', () => {
 
   it('positions the hover card to the right of the pill', async () => {
     const pin = await addPost('pos_acct');
-    pin.click();
+    userClick(pin);
     found('pos_acct', 'Canada', 'iOS');
 
     const pill = document.querySelector('[data-handle="pos_acct"]');
@@ -373,7 +376,7 @@ describe('pin lookups', () => {
 
   it('positions the hover card on the left if there is not enough space on the right', async () => {
     const pin = await addPost('edge_acct');
-    pin.click();
+    userClick(pin);
     found('edge_acct', 'Brazil', 'Android App');
 
     const pill = document.querySelector('[data-handle="edge_acct"]');
@@ -399,15 +402,15 @@ describe('pin lookups', () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     const pin = await addPost('dbl_acct');
-    pin.click();
+    userClick(pin);
     found('dbl_acct', 'Germany', 'Web App');
 
     const pill = document.querySelector('[data-handle="dbl_acct"]');
     vi.useFakeTimers();
 
     // Two rapid clicks
-    pill.click();
-    pill.click();
+    userClick(pill);
+    userClick(pill);
 
     expect(writeText).toHaveBeenCalledTimes(1);
     await Promise.resolve();
@@ -420,7 +423,7 @@ describe('pin lookups', () => {
     expect(pill.className).toBe('xray-pill');
 
     // It can be copied again later
-    pill.click();
+    userClick(pill);
     expect(writeText).toHaveBeenCalledTimes(2);
     await Promise.resolve();
     expect(pill.textContent).toContain('Copied!');
@@ -435,17 +438,17 @@ describe('pin lookups', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 
     const pin1 = await addPost('app_no_loc');
-    pin1.click();
+    userClick(pin1);
     found('app_no_loc', '', 'App Store');
     const pill1 = document.querySelector('[data-handle="app_no_loc"]');
-    pill1.click();
+    userClick(pill1);
     expect(writeText).toHaveBeenCalledWith('Unknown (App Store)');
 
     const pin2 = await addPost('no_app_no_loc');
-    pin2.click();
+    userClick(pin2);
     found('no_app_no_loc', '', '');
     const pill2 = document.querySelector('[data-handle="no_app_no_loc"]');
-    pill2.click();
+    userClick(pill2);
     expect(writeText).toHaveBeenCalledWith('Unknown');
   });
 
@@ -454,11 +457,11 @@ describe('pin lookups', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 
     const pin = await addPost('fail_copy_acct');
-    pin.click();
+    userClick(pin);
     found('fail_copy_acct', 'France', 'iOS');
 
     const pill = document.querySelector('[data-handle="fail_copy_acct"]');
-    pill.click();
+    userClick(pill);
     await Promise.resolve();
 
     expect(writeText).toHaveBeenCalledWith('France (iOS)');
@@ -470,7 +473,7 @@ describe('pin lookups', () => {
   it('never shows Not available when X answers before the 10 seconds are up', async () => {
     const pin = await addPost('quick_acct');
     vi.useFakeTimers();
-    pin.click();
+    userClick(pin);
     vi.advanceTimersByTime(9000);
     found('quick_acct', 'Kenya', 'Web App');
     vi.advanceTimersByTime(5000);
@@ -483,7 +486,7 @@ describe('pin lookups', () => {
 
   it('keeps Android results and later posts by the same account clickable', async () => {
     const pin = await addPost('droid_acct');
-    pin.click();
+    userClick(pin);
     found('droid_acct', 'Brazil', 'Android App');
     expect(state(document.querySelector('[data-handle="droid_acct"]'))).toMatchObject({
       cls: 'xray-pill android-device',
@@ -504,7 +507,7 @@ describe('pin lookups', () => {
 
   it('shows tags in a result as plain text in the pill and the info card', async () => {
     const pin = await addPost('evil_acct');
-    pin.click();
+    userClick(pin);
     found('evil_acct', 'Japan" data-injected="yes', '&lt;u&gt;FAKE&lt;/u&gt; Web App');
 
     const pill = document.querySelector('[data-handle="evil_acct"]');
@@ -522,7 +525,7 @@ describe('pin lookups', () => {
   it('ignores an answer that arrives after the 10 seconds are up', async () => {
     const pin = await addPost('late_acct');
     vi.useFakeTimers();
-    pin.click();
+    userClick(pin);
     vi.advanceTimersByTime(10000);
 
     found('late_acct', 'Japan', 'Web App');
@@ -535,14 +538,14 @@ describe('pin lookups', () => {
   it('keeps a result found for another post by the same account while Not available is showing', async () => {
     const first = await addPost('twice_acct');
     vi.useFakeTimers();
-    first.click();
+    userClick(first);
     vi.advanceTimersByTime(10000);
     expect(first.textContent).toBe('Not available');
 
     vi.useRealTimers();
     const second = await addPost('twice_acct');
     vi.useFakeTimers();
-    second.click();
+    userClick(second);
     found('twice_acct', 'Japan', 'Web App');
     vi.advanceTimersByTime(3000);
 
@@ -567,7 +570,7 @@ describe('answers that are not from the lookup', () => {
 
   it('ignores an answer about a different account and still finishes the real lookup', async () => {
     const pin = await addPost('real_acct');
-    pin.click();
+    userClick(pin);
     send({ type: 'X_LOCATION_FOUND', handle: 'nobody', location: 'X', source: 'X' }, lookupFrame());
     expect(pin.textContent).toBe('Locating...');
     await settle();
@@ -579,7 +582,7 @@ describe('answers that are not from the lookup', () => {
 
   it('accepts the looked-up account written in different upper and lower case', async () => {
     const pin = await addPost('CaseAcct');
-    pin.click();
+    userClick(pin);
     send({ type: 'X_LOCATION_FOUND', handle: 'caseacct', location: 'Chile', source: 'Web App' }, lookupFrame());
 
     expect(pin.textContent).toContain('Chile');
@@ -588,7 +591,7 @@ describe('answers that are not from the lookup', () => {
 
   it('ignores account names that are not real X usernames, leaving the page alone', async () => {
     const pin = await addPost('odd_acct');
-    pin.click();
+    userClick(pin);
     const other = document.createElement('div');
     other.className = 'unrelated';
     document.body.append(other);
@@ -616,7 +619,7 @@ describe('saved results', () => {
 
   async function lookUp(handle) {
     const pin = await addPost(handle);
-    pin.click();
+    userClick(pin);
     found(handle, 'Kenya', 'Web App');
     await vi.waitFor(() => expect(saved()).toHaveProperty(handle));
     await settle();
@@ -690,7 +693,7 @@ describe('saved results', () => {
     chrome.runtime.id = undefined;
     try {
       const pin = await addPost('after_reload');
-      pin.click();
+      userClick(pin);
       found('after_reload', 'Kenya', 'Web App');
       expect(pin.textContent).toContain('Kenya');
       await settle();
@@ -715,7 +718,7 @@ describe('odd data from X', () => {
 
   async function answer(handle, location, source) {
     const pin = await addPost(handle);
-    pin.click();
+    userClick(pin);
     found(handle, location, source);
     await vi.waitFor(() => expect(saved()).toHaveProperty(handle));
     return document.querySelector(`[data-handle="${handle}"]`);
@@ -754,6 +757,121 @@ describe('odd data from X', () => {
   });
 });
 
+describe('the hidden lookup frame', () => {
+  afterEach(removePosts);
+
+  const frame = () => document.querySelector('iframe');
+
+  it('is removed once an answer arrives and nothing else is waiting', async () => {
+    const pin = await addPost('frame_done');
+    userClick(pin);
+    expect(frame()).not.toBeNull();
+
+    found('frame_done', 'Peru', 'Web App');
+    expect(frame()).toBeNull();
+    expect(pin.textContent).toContain('Peru');
+  });
+
+  it('stays while other lookups are waiting, then goes after the last one', async () => {
+    const first = await addPost('frame_a');
+    const second = await addPost('frame_b');
+    vi.useFakeTimers();
+    userClick(first);
+    userClick(second);
+
+    found('frame_a', 'Peru', 'Web App');
+    expect(frame()).not.toBeNull();
+
+    vi.advanceTimersByTime(500);
+    expect(frame().getAttribute('src')).toContain('/frame_b/about');
+    found('frame_b', 'Chile', 'Web App');
+    expect(frame()).toBeNull();
+    expect(second.textContent).toContain('Chile');
+  });
+
+  it('is removed when X does not answer in time', async () => {
+    const pin = await addPost('frame_slow');
+    vi.useFakeTimers();
+    userClick(pin);
+    vi.advanceTimersByTime(10000);
+
+    expect(pin.textContent.trim()).toBe('Not available');
+    expect(frame()).toBeNull();
+  });
+
+  it('is made again for the next lookup', async () => {
+    const first = await addPost('frame_one');
+    userClick(first);
+    found('frame_one', 'Peru', 'Web App');
+    expect(frame()).toBeNull();
+
+    const second = await addPost('frame_two');
+    userClick(second);
+    expect(frame().getAttribute('src')).toContain('/frame_two/about');
+    found('frame_two', 'Chile', 'Web App');
+    expect(second.textContent).toContain('Chile');
+  });
+
+  it('ignores a late answer from a frame that was already removed', async () => {
+    const pin = await addPost('frame_late');
+    vi.useFakeTimers();
+    userClick(pin);
+    const oldFrame = lookupFrame();
+    vi.advanceTimersByTime(10000);
+    expect(frame()).toBeNull();
+
+    found('frame_late', 'Peru', 'Web App', oldFrame);
+    expect(pin.textContent.trim()).toBe('Not available');
+  });
+});
+
+describe('clicks made by page scripts', () => {
+  afterEach(removePosts);
+
+  // What a script on the page can send; the browser marks it as not coming from the user.
+  const fakeClick = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  const state = (el) => ({ cls: el.className, text: el.textContent.trim() });
+  // The page the hidden lookup frame was last sent to.
+  const lookedUp = () => document.querySelector('iframe')?.getAttribute('src') ?? '';
+
+  it('starts a lookup for a real click on the pin', async () => {
+    const pin = await addPost('real_click');
+    userClick(pin);
+    expect(state(pin)).toEqual({ cls: 'xray-pill loading', text: 'Locating...' });
+    found('real_click', 'Peru', 'Web App');
+  });
+
+  it('ignores a click or key press that a script makes up on the pin', async () => {
+    const pin = await addPost('fake_click');
+    fakeClick(pin);
+    pin.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(state(pin)).toEqual({ cls: 'xray-pin', text: '' });
+    expect(lookedUp()).not.toContain('fake_click');
+  });
+
+  it('leaves every pin alone when a script clicks all of them', async () => {
+    const pins = [await addPost('fake_a'), await addPost('fake_b'), await addPost('fake_c')];
+    document.querySelectorAll('button[data-handle]').forEach((b) => fakeClick(b));
+    pins.forEach((pin) => expect(pin.className).toBe('xray-pin'));
+    expect(lookedUp()).not.toMatch(/fake_[abc]/);
+  });
+
+  it('does not copy when a script clicks a result pill, but a real click still copies', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const pin = await addPost('fake_copy');
+    userClick(pin);
+    found('fake_copy', 'Chile', 'Web App');
+
+    fakeClick(pin);
+    expect(writeText).not.toHaveBeenCalled();
+    expect(pin.className).toBe('xray-pill');
+
+    userClick(pin);
+    expect(writeText).toHaveBeenCalledWith('Chile (Web App)');
+  });
+});
+
 describe('keyboard and screen reader use', () => {
   afterEach(removePosts);
 
@@ -769,7 +887,7 @@ describe('keyboard and screen reader use', () => {
 
   it('keeps the result pill a named button that says what it holds and what it does', async () => {
     const pin = await addPost('kbd_result');
-    pin.click();
+    userClick(pin);
     found('kbd_result', 'Chile', 'Twitter for iPhone');
 
     const pill = document.querySelector('[data-handle="kbd_result"]');
@@ -780,7 +898,7 @@ describe('keyboard and screen reader use', () => {
 
   it('names a result with no location or app plainly', async () => {
     const pin = await addPost('kbd_unknown');
-    pin.click();
+    userClick(pin);
     found('kbd_unknown', '', '');
     expect(label(pin)).toBe('Copy location: Unknown');
   });
@@ -788,7 +906,7 @@ describe('keyboard and screen reader use', () => {
   it('keeps the name in step with each state and gives the pin back its name', async () => {
     const pin = await addPost('kbd_states');
     vi.useFakeTimers();
-    pin.click();
+    userClick(pin);
     expect(label(pin)).toBe('Locating...');
 
     vi.advanceTimersByTime(10000);
@@ -802,11 +920,11 @@ describe('keyboard and screen reader use', () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     const pin = await addPost('kbd_copy');
-    pin.click();
+    userClick(pin);
     found('kbd_copy', 'Japan', 'Web App');
     vi.useFakeTimers();
 
-    pin.click();
+    userClick(pin);
     await Promise.resolve();
     expect(label(pin)).toBe('Copied');
     expect(spoken()).toBe('Copied Japan, Web');
@@ -817,7 +935,7 @@ describe('keyboard and screen reader use', () => {
 
   it('says out loud when a lookup starts, finishes or fails', async () => {
     const pin = await addPost('kbd_voice');
-    pin.click();
+    userClick(pin);
     expect(spoken()).toBe('Looking up @kbd_voice');
 
     found('kbd_voice', 'Peru', 'Android App');
@@ -825,17 +943,17 @@ describe('keyboard and screen reader use', () => {
 
     const slow = await addPost('kbd_voice_slow');
     vi.useFakeTimers();
-    slow.click();
+    userClick(slow);
     vi.advanceTimersByTime(10000);
     expect(spoken()).toBe('Not available for @kbd_voice_slow');
   });
 
   it('does not start a second lookup when Enter or Space reaches a pill that is already looking up', async () => {
     const pin = await addPost('kbd_twice');
-    pin.click();
+    userClick(pin);
     expect(pin.textContent.trim()).toBe('Locating...');
 
-    pin.click();
+    userClick(pin);
     expect(pin.textContent.trim()).toBe('Locating...');
     expect(pin.className).toBe('xray-pill loading');
 
@@ -846,7 +964,7 @@ describe('keyboard and screen reader use', () => {
 
   it('shows the info card when the pill gets keyboard focus and hides it when focus leaves', async () => {
     const pin = await addPost('kbd_focus');
-    pin.click();
+    userClick(pin);
     found('kbd_focus', 'Canada', 'iOS');
 
     const pill = document.querySelector('[data-handle="kbd_focus"]');

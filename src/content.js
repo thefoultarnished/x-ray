@@ -221,6 +221,8 @@ if (window === window.top) {
     let isCopying = false;
 
     btn.onclick = (e) => {
+      // Only a real click or key press counts; a script on the page can fake the rest.
+      if (!e.isTrusted) return;
       e.preventDefault();
       e.stopPropagation();
 
@@ -389,21 +391,27 @@ if (window === window.top) {
     updateToLocationText(handle, location, source);
     announce(`@${handle}: ${describeResult(location, source)}`);
 
-    scraperFrame.src = 'about:blank';
-    busyHandle = null;
-    isProcessingQueue = false;
+    finishLookup();
     setTimeout(processQueue, 500);
   });
+
+  // Marks the lookup as done, then removes the hidden frame unless more lookups are waiting.
+  function finishLookup() {
+    busyHandle = null;
+    isProcessingQueue = false;
+    if (!scraperFrame) return;
+    if (requestQueue.length === 0) {
+      scraperFrame.remove();
+      scraperFrame = null;
+    } else {
+      scraperFrame.src = 'about:blank';
+    }
+  }
 
   function updateToLocationText(handle, location, source) {
     document
       .querySelectorAll(`.xray-pin[data-handle="${handle}"], .xray-pill[data-handle="${handle}"]`)
       .forEach((btn) => renderPill(btn, location, source));
-
-    if (!busyHandle && requestQueue.length === 0 && scraperFrame) {
-      scraperFrame.remove();
-      scraperFrame = null;
-    }
 
     if (tooltip) tooltip.style.display = 'none';
   }
@@ -491,12 +499,10 @@ if (window === window.top) {
 
     setTimeout(() => {
       if (busyHandle !== handle) return;
-      busyHandle = null;
-      isProcessingQueue = false;
       console.warn(`[X-Ray] No location data for @${handle} after ${LOOKUP_TIMEOUT_MS / 1000}s`);
       document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
       announce(`Not available for @${handle}`);
-      if (scraperFrame) scraperFrame.src = 'about:blank';
+      finishLookup();
       processQueue();
     }, LOOKUP_TIMEOUT_MS);
   }
@@ -581,6 +587,7 @@ if (window === window.top) {
         btn.innerHTML = ICONS.PIN;
 
         btn.onclick = (e) => {
+          if (!e.isTrusted) return;
           e.preventDefault();
           e.stopPropagation();
           tooltip.style.display = 'none';

@@ -33,6 +33,9 @@ beforeAll(async () => {
   await new Promise((r) => setTimeout(r, 20));
 });
 
+// jsdom marks every click it makes as untrusted, so this stands in for a real click or key press.
+const userClick = (el) => el.onclick({ isTrusted: true, preventDefault() {}, stopPropagation() {} });
+
 function addPost(handle, parent = document.body) {
   const article = document.createElement('article');
   article.dataset.testid = 'tweet';
@@ -69,7 +72,7 @@ describe('page elements with the same names as the extension', () => {
     const article = addPost('card_acct');
     await new Promise((r) => setTimeout(r, 20));
     const pin = article.querySelector('button');
-    pin.click();
+    userClick(pin);
     found('card_acct', 'Canada', 'iOS');
     pin.dispatchEvent(new MouseEvent('mouseenter'));
 
