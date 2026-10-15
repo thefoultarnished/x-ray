@@ -35,7 +35,7 @@
     },
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
-      "js": ["flags.js", "content.js"],
+      "js": ["saved-results.js", "flags.js", "content.js"],
       "css": ["styles.css"],
       "run_at": "document_start",
       "all_frames": false

@@ -250,7 +250,6 @@ const LOOKUP_TIMEOUT_MS = 10000;
 const NOT_AVAILABLE_MS = 3000;
 // Pause before the next queued lookup starts.
 const NEXT_LOOKUP_DELAY_MS = 500;
-const SAVED_PREFIX = 'loc:';
 // Where versions up to 1.5 kept results: inside x.com's own storage, readable by X.
 const OLD_CACHE_KEY = 'x_location_cache';
 // Set once the old results were moved, so anything planted there later is never imported.
@@ -538,7 +537,7 @@ function startUI() {
   // A focused pill is let go too, or coming back would give it focus again and reopen the card.
   const hideHints = () => {
     const active = document.activeElement;
-    if (active && active.matches('button[data-handle]')) active.blur();
+    if (active && active.matches('.xray-pin, .xray-pill')) active.blur();
     hideHoverCard();
     hideTooltip();
   };
@@ -645,13 +644,28 @@ function startUI() {
   }
 
   // Results cleared from the popup are forgotten here too: their pills turn back into pins.
+  // An account that still has a saved spelling is kept (the tidy-up only drops the older capitals).
   // Pills that are still looking something up, or showing "Not available", are left to finish.
-  function forgetRemovedResults(changes, area) {
+  async function forgetRemovedResults(changes, area) {
     if (area !== 'local') return;
-    const handles = Object.keys(changes)
+    let handles = Object.keys(changes)
       .filter((key) => key.startsWith(SAVED_PREFIX) && changes[key].newValue === undefined)
       .map((key) => key.slice(SAVED_PREFIX.length).toLowerCase())
       .filter((handle) => HANDLE_PATTERN.test(handle));
+    if (!handles.length) return;
+    try {
+      const store = savedStore();
+      if (!store) return;
+      const stillSaved = new Set(
+        Object.keys(await store.get(null))
+          .filter((key) => key.startsWith(SAVED_PREFIX))
+          .map((key) => key.slice(SAVED_PREFIX.length).toLowerCase())
+      );
+      handles = handles.filter((handle) => !stillSaved.has(handle));
+    } catch (e) {
+      console.warn('[X-Ray] Could not check saved locations:', e);
+      return;
+    }
     if (!handles.length) return;
     hideHoverCard();
     for (const handle of handles) {

@@ -24,9 +24,17 @@ const storageArea = {
     );
   },
   set: async (items) => Object.entries(items).forEach(([k, v]) => storage.set(k, structuredClone(v))),
-  remove: async (keys) => [].concat(keys).forEach((k) => storage.delete(k)),
+  remove: async (keys) => {
+    const changes = {};
+    for (const k of [].concat(keys)) {
+      changes[k] = { oldValue: storage.get(k) };
+      storage.delete(k);
+    }
+    storageListeners.forEach((fn) => fn(changes, 'local'));
+  },
 };
 
+const storageListeners = [];
 const result = (daysAgo) => ({ loc: 'Japan', src: 'Web App', timestamp: Date.now() - daysAgo * DAY });
 const savedKeys = () => [...storage.keys()].filter((k) => k.startsWith('loc:')).map((k) => k.slice(4));
 
@@ -42,9 +50,10 @@ beforeEach(() => {
   storage.set('movedOldResults', true);
   readAllCount = 0;
   failReads = false;
+  storageListeners.length = 0;
   globalThis.chrome = {
     runtime: { id: 'test' },
-    storage: { local: storageArea, onChanged: { addListener: () => {} } },
+    storage: { local: storageArea, onChanged: { addListener: (fn) => storageListeners.push(fn) } },
   };
   const local = new Map();
   Object.defineProperty(globalThis, 'localStorage', {
@@ -55,6 +64,7 @@ beforeEach(() => {
       removeItem: (k) => local.delete(k),
     },
   });
+  globalThis.SAVED_PREFIX = require('../src/saved-results.js').SAVED_PREFIX;
   globalThis.FLAG_IMAGES = require('../src/flags.js');
 });
 
@@ -164,6 +174,41 @@ describe('starting up', () => {
 });
 
 describe('older spellings of an account', () => {
+  // What Chrome tells every open tab when the tidy-up (or another tab) removes a saved result.
+  const removeSaved = (key) => {
+    const oldValue = storage.get(key);
+    storage.delete(key);
+    storageListeners.forEach((fn) => fn({ [key]: { oldValue } }, 'local'));
+  };
+
+  async function pillFor(handle) {
+    const article = document.createElement('article');
+    article.dataset.testid = 'tweet';
+    article.innerHTML = `<div data-testid="User-Name"><a href="/${handle}">x</a></div><div><div data-testid="caret"></div></div>`;
+    document.body.append(article);
+    await vi.waitFor(() => expect(article.querySelector('button')?.textContent).toContain('Chile'));
+    return article;
+  }
+
+  it('keeps the result on the page when only the older spelling is removed', async () => {
+    storage.set('loc:sameacct', { loc: 'Chile', src: 'Web', timestamp: Date.now() - 1 * DAY });
+    storage.set('loc:SameAcct', { loc: 'Peru', src: 'Web', timestamp: Date.now() - 5 * DAY });
+    openX();
+    const article = await pillFor('SameAcct');
+    removeSaved('loc:SameAcct');
+    await new Promise((r) => setTimeout(r, 20));
+    expect(article.querySelector('button').className).toContain('xray-pill');
+    expect(article.querySelector('button').textContent).toContain('Chile');
+  });
+
+  it('turns the result back into a pin once no spelling is saved', async () => {
+    storage.set('loc:sameacct', { loc: 'Chile', src: 'Web', timestamp: Date.now() - 1 * DAY });
+    openX();
+    const article = await pillFor('SameAcct');
+    removeSaved('loc:sameacct');
+    await vi.waitFor(() => expect(article.querySelector('button').className).toContain('xray-pin'));
+  });
+
   it('removes the older capitals from storage and keeps the newest one', async () => {
     storage.set('loc:SameAcct', { loc: 'Peru', src: 'Web', timestamp: Date.now() - 5 * DAY });
     storage.set('loc:sameacct', { loc: 'Chile', src: 'Web', timestamp: Date.now() - 1 * DAY });

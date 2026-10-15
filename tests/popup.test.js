@@ -13,7 +13,7 @@ const flush = () => vi.advanceTimersByTimeAsync(0);
 const button = () => document.getElementById('clearSaved');
 const count = () => document.getElementById('savedCount').textContent;
 
-async function openPopup(values) {
+async function openPopup(values, { readFails = false } = {}) {
   data = new Map(Object.entries(values));
   removeFails = false;
   document.body.replaceChildren(...new DOMParser().parseFromString(html, 'text/html').body.childNodes);
@@ -24,7 +24,10 @@ async function openPopup(values) {
     tabs: { create: async () => {} },
     storage: {
       local: {
-        get: async () => Object.fromEntries(data),
+        get: async () => {
+          if (readFails) throw new Error('storage failed');
+          return Object.fromEntries(data);
+        },
         remove: async (keys) => {
           if (removeFails) throw new Error('storage failed');
           [].concat(keys).forEach((k) => data.delete(k));
@@ -104,7 +107,15 @@ describe('the clear cached records button', () => {
     await flush();
     expect(data.has('loc:a')).toBe(true);
     expect(button().textContent).toBe('Clear cache');
-    expect(count()).toBe('Cached Records: 1');
+    expect(count()).toBe('Could not clear cached records');
+    warn.mockRestore();
+  });
+
+  it('says so, and switches the button off, when the cached records cannot be read', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await openPopup({ 'loc:a': {} }, { readFails: true });
+    expect(count()).toBe('Could not read cached records');
+    expect(button().disabled).toBe(true);
     warn.mockRestore();
   });
 });

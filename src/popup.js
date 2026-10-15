@@ -68,6 +68,8 @@ clearSaved.addEventListener('click', async () => {
   } catch (err) {
     console.warn('[X-Ray] Could not clear cached records:', err);
     clearSaved.textContent = CLEAR_LABEL;
+    savedCount.textContent = 'Could not clear cached records';
+    return;
   }
   showSavedCount();
 });

@@ -1,4 +1,4 @@
-// Same prefix content.js puts in front of each saved result's storage key.
+// Put in front of each saved result's storage key. Shared by the popup and content.js.
 const SAVED_PREFIX = 'loc:';
 
 async function savedKeys(store) {

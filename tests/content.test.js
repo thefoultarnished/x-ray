@@ -59,6 +59,7 @@ beforeAll(() => {
     })
   );
   // In Chrome flags.js loads right before content.js and shares its scope.
+  globalThis.SAVED_PREFIX = require('../src/saved-results.js').SAVED_PREFIX;
   flagImages = globalThis.FLAG_IMAGES = require('../src/flags.js');
   ({ createFlag, createSourceContent } = require('../src/content.js'));
 });
@@ -1112,7 +1113,7 @@ describe('forgetting saved results that were cleared', () => {
     pillFor('clear_card').dispatchEvent(new MouseEvent('mouseenter'));
     await vi.waitFor(() => expect(document.querySelector('.xray-hover-card').classList.contains('show')).toBe(true));
     removeSaved('clear_card');
-    expect(document.querySelector('.xray-hover-card').classList.contains('show')).toBe(false);
+    await vi.waitFor(() => expect(document.querySelector('.xray-hover-card').classList.contains('show')).toBe(false));
   });
 
   it('ignores changes that are not removed results', async () => {
@@ -1132,6 +1133,35 @@ describe('forgetting saved results that were cleared', () => {
     await settle();
     expect(pillFor('clear_busy').classList.contains('loading')).toBe(true);
     found('clear_busy', 'Peru', 'Web App');
+  });
+
+  it('turns both spellings back into a pin when the popup clears them together', async () => {
+    await resultFor('clear_both');
+    extensionStorage.set('loc:Clear_Both', { loc: 'Peru', src: 'Web App', timestamp: Date.now() });
+    removeSaved('clear_both', 'Clear_Both');
+    await vi.waitFor(() => expect(pillFor('clear_both').classList.contains('xray-pin')).toBe(true));
+  });
+
+  it('keeps the result when another spelling of the account is still saved', async () => {
+    await resultFor('clear_spell');
+    extensionStorage.set('loc:Clear_Spell', { loc: 'Peru', src: 'Web App', timestamp: Date.now() });
+    removeSaved('clear_spell');
+    await settle();
+    await settle();
+    expect(pillFor('clear_spell').classList.contains('xray-pill')).toBe(true);
+    extensionStorage.delete('loc:Clear_Spell');
+  });
+
+  it('does nothing, and does not throw, when the extension was reloaded', async () => {
+    await resultFor('clear_stale');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    chrome.runtime.id = undefined;
+    removeSaved('clear_stale');
+    await settle();
+    chrome.runtime.id = 'test';
+    expect(pillFor('clear_stale').classList.contains('xray-pill')).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('does nothing when no post is on the page', () => {
@@ -1187,6 +1217,16 @@ describe('closing the hint and the card when leaving the tab', () => {
     document.dispatchEvent(new Event('visibilitychange'));
     setHidden(false);
     expect(document.activeElement).not.toBe(pill);
+  });
+
+  it('leaves a button of the page itself focused even if it has a data-handle', () => {
+    const own = document.createElement('button');
+    own.dataset.handle = 'page_owned';
+    document.body.append(own);
+    own.focus();
+    window.dispatchEvent(new Event('blur'));
+    expect(document.activeElement).toBe(own);
+    own.remove();
   });
 
   it('leaves focus on other elements alone when the tab is switched away', async () => {

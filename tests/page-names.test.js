@@ -30,6 +30,7 @@ beforeAll(async () => {
       removeItem: (k) => store.delete(k),
     },
   });
+  globalThis.SAVED_PREFIX = require('../src/saved-results.js').SAVED_PREFIX;
   globalThis.FLAG_IMAGES = require('../src/flags.js');
   require('../src/content.js');
   // Saved results load first, then the extension starts.
