@@ -1,16 +1,3 @@
-if (document.head) {
-  const prefetch = document.createElement('link');
-  prefetch.rel = 'dns-prefetch';
-  prefetch.href = 'https://flagcdn.com';
-  document.head.appendChild(prefetch);
-
-  const preconnect = document.createElement('link');
-  preconnect.rel = 'preconnect';
-  preconnect.href = 'https://flagcdn.com';
-  preconnect.crossOrigin = 'anonymous';
-  document.head.appendChild(preconnect);
-}
-
 const script = document.createElement('script');
 script.src = chrome.runtime.getURL('parser.js');
 script.onload = function () {
@@ -76,9 +63,6 @@ if (window === window.top) {
     'the gambia': 'gm',
   };
 
-  // Codes Chrome knows that are not countries or that flagcdn has no flag for.
-  const NO_FLAG_CODES = new Set(['AC', 'CP', 'CQ', 'DG', 'EA', 'IC', 'TA', 'QO', 'EZ', 'ZZ']);
-
   // "Türkiye", "turkiye" and "St. Kitts & Nevis" / "Saint Kitts and Nevis" compare equal.
   function normalizeName(text) {
     return text
@@ -95,6 +79,7 @@ if (window === window.top) {
   }
 
   // Every country Chrome knows by its English name, plus EXTRA_COUNTRY_NAMES on top.
+  // Codes with no built-in flag (Chrome also lists non-countries like "Unknown Region") are left out.
   function buildCountryCodes() {
     const codes = new Map();
     if (typeof Intl.DisplayNames === 'function') {
@@ -103,7 +88,7 @@ if (window === window.top) {
       for (const a of letters) {
         for (const b of letters) {
           const code = a + b;
-          if (NO_FLAG_CODES.has(code)) continue;
+          if (!FLAG_IMAGES[code.toLowerCase()]) continue;
           const name = names.of(code);
           // Skips unknown codes and outdated ones Chrome maps to a current code (UK -> GB).
           if (!name || name === code || new Intl.Locale(`und-${code}`).region !== code) continue;
@@ -111,7 +96,9 @@ if (window === window.top) {
         }
       }
     }
-    for (const [name, code] of Object.entries(EXTRA_COUNTRY_NAMES)) codes.set(normalizeName(name), code);
+    for (const [name, code] of Object.entries(EXTRA_COUNTRY_NAMES)) {
+      if (FLAG_IMAGES[code]) codes.set(normalizeName(name), code);
+    }
     return codes;
   }
 
@@ -164,7 +151,7 @@ if (window === window.top) {
 
   function createFlagImage(code, alt) {
     const img = document.createElement('img');
-    img.src = `https://flagcdn.com/w40/${code}.png`;
+    img.src = FLAG_IMAGES[code];
     img.className = 'flag-img';
     img.alt = alt;
     img.loading = 'eager';

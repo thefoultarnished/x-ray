@@ -5,6 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 let createFlag;
 let createSourceContent;
+let flagImages;
 const DAY = 24 * 60 * 60 * 1000;
 
 // Stand-in for chrome.storage.local, the extension's own storage.
@@ -48,6 +49,8 @@ beforeAll(() => {
       'not a name!': { loc: 'Peru', src: 'Web App', timestamp: Date.now() },
     })
   );
+  // In Chrome flags.js loads right before content.js and shares its scope.
+  flagImages = globalThis.FLAG_IMAGES = require('../src/flags.js');
   ({ createFlag, createSourceContent } = require('../src/content.js'));
 });
 
@@ -58,22 +61,19 @@ function render(node) {
   return el;
 }
 
-const flagCode = (el) =>
-  el
-    .querySelector('img.flag-img')
-    ?.getAttribute('src')
-    .match(/w40\/([\w-]+)\.png$/)[1] ?? 'globe';
-const flagFor = (loc) => flagCode(render(createFlag(loc)));
+// The flag picture shown (compared with flagImages.<code>), or 'globe' when there is none.
+const flagPicture = (el) => el.querySelector('img.flag-img')?.getAttribute('src') ?? 'globe';
+const flagFor = (loc) => flagPicture(render(createFlag(loc)));
 
 describe('createFlag', () => {
   it('shows the flag for a country name, ignoring case and accents', () => {
-    expect(flagFor('Germany')).toBe('de');
-    expect(flagFor('JAPAN')).toBe('jp');
-    expect(flagFor('Türkiye')).toBe('tr');
-    expect(flagFor('turkiye')).toBe('tr');
-    expect(flagFor('Côte d’Ivoire')).toBe('ci');
-    expect(flagFor('St. Kitts & Nevis')).toBe('kn');
-    expect(flagFor('Saint Kitts and Nevis')).toBe('kn');
+    expect(flagFor('Germany')).toBe(flagImages.de);
+    expect(flagFor('JAPAN')).toBe(flagImages.jp);
+    expect(flagFor('Türkiye')).toBe(flagImages.tr);
+    expect(flagFor('turkiye')).toBe(flagImages.tr);
+    expect(flagFor('Côte d’Ivoire')).toBe(flagImages.ci);
+    expect(flagFor('St. Kitts & Nevis')).toBe(flagImages.kn);
+    expect(flagFor('Saint Kitts and Nevis')).toBe(flagImages.kn);
   });
 
   it('knows countries the old list was missing', () => {
@@ -85,31 +85,31 @@ describe('createFlag', () => {
       ['Panama', 'pa'],
       ['Costa Rica', 'cr'],
     ]) {
-      expect(flagFor(loc)).toBe(code);
+      expect(flagFor(loc)).toBe(flagImages[code]);
     }
   });
 
   it('only matches the whole name, never part of it', () => {
-    expect(flagFor('Belarus')).toBe('by');
-    expect(flagFor('Democratic Republic of the Congo')).toBe('cd');
-    expect(flagFor('Republic of the Congo')).toBe('cg');
-    expect(flagFor('Niger')).toBe('ne');
-    expect(flagFor('Nigeria')).toBe('ng');
-    expect(flagFor('South Sudan')).toBe('ss');
+    expect(flagFor('Belarus')).toBe(flagImages.by);
+    expect(flagFor('Democratic Republic of the Congo')).toBe(flagImages.cd);
+    expect(flagFor('Republic of the Congo')).toBe(flagImages.cg);
+    expect(flagFor('Niger')).toBe(flagImages.ne);
+    expect(flagFor('Nigeria')).toBe(flagImages.ng);
+    expect(flagFor('South Sudan')).toBe(flagImages.ss);
   });
 
   it('understands older names and short forms', () => {
-    expect(flagFor('Turkey')).toBe('tr');
-    expect(flagFor('Czech Republic')).toBe('cz');
-    expect(flagFor('Ivory Coast')).toBe('ci');
-    expect(flagFor('USA')).toBe('us');
-    expect(flagFor('UK')).toBe('gb');
-    expect(flagFor('England')).toBe('gb-eng');
+    expect(flagFor('Turkey')).toBe(flagImages.tr);
+    expect(flagFor('Czech Republic')).toBe(flagImages.cz);
+    expect(flagFor('Ivory Coast')).toBe(flagImages.ci);
+    expect(flagFor('USA')).toBe(flagImages.us);
+    expect(flagFor('UK')).toBe(flagImages.gb);
+    expect(flagFor('England')).toBe(flagImages['gb-eng']);
   });
 
   it('shows the EU flag for Europe and the European Union', () => {
-    expect(flagFor('Europe')).toBe('eu');
-    expect(flagFor('European Union')).toBe('eu');
+    expect(flagFor('Europe')).toBe(flagImages.eu);
+    expect(flagFor('European Union')).toBe(flagImages.eu);
   });
 
   it('shows the globe for regions, unknown places and missing locations', () => {
@@ -132,6 +132,58 @@ describe('createFlag', () => {
   it('never turns a location with quotes or tags into page code', () => {
     const el = render(createFlag('Japan" data-injected="yes <b>x</b>'));
     expect(el.querySelector('[data-injected], b')).toBeNull();
+  });
+
+  it('shows the globe for names Chrome lists that are not countries with a flag', () => {
+    for (const loc of ['Unknown Region', 'Ascension Island', 'Clipperton Island', 'Diego Garcia', 'Pseudo-Accents']) {
+      expect(flagFor(loc)).toBe('globe');
+    }
+  });
+});
+
+describe('built-in flags', () => {
+  const sources = (el) => [...el.querySelectorAll('img.flag-img')].map((img) => img.getAttribute('src'));
+
+  it('draws every flag from a picture inside the extension, never from a website', () => {
+    const countries = ['Germany', 'Japan', 'England', 'Europe', 'USA', 'Côte d’Ivoire', 'Kosovo'];
+    for (const country of countries) {
+      const [src] = sources(render(createFlag(country)));
+      expect(src).toMatch(/^data:image\/png;base64,/);
+    }
+    const store = sources(render(createSourceContent('United States App Store', 'India')));
+    expect(store).toHaveLength(1);
+    expect(store[0]).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('does not ask any other website to get ready for flags', () => {
+    expect(document.head.querySelector('link[href*="flagcdn"]')).toBeNull();
+    expect(document.documentElement.innerHTML).not.toContain('flagcdn.com');
+  });
+
+  it('has a real picture for every country name the extension understands', () => {
+    const codes = new Set(Object.keys(flagImages));
+    expect(codes.size).toBeGreaterThanOrEqual(250);
+    for (const [code, src] of Object.entries(flagImages)) {
+      expect(code).toMatch(/^[a-z]{2}(-[a-z]{3})?$/);
+      const bytes = Buffer.from(src.replace('data:image/png;base64,', ''), 'base64');
+      expect([...bytes.subarray(1, 4)]).toEqual([0x50, 0x4e, 0x47]);
+    }
+    for (const code of ['gb-eng', 'gb-sct', 'gb-wls', 'gb-nir', 'eu', 'us', 'gb']) {
+      expect(codes.has(code)).toBe(true);
+    }
+  });
+
+  it('gives every country Chrome can name its own flag, or the globe, never a broken picture', () => {
+    const names = new Intl.DisplayNames(['en'], { type: 'region' });
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (const a of letters) {
+      for (const b of letters) {
+        const name = names.of(a + b);
+        if (!name || name === a + b) continue;
+        const [src] = sources(render(createFlag(name)));
+        if (src) expect(Object.values(flagImages)).toContain(src);
+      }
+    }
   });
 });
 
@@ -162,13 +214,13 @@ describe('createSourceContent', () => {
 
   it('flags the store country when it differs from the location', () => {
     const el = render(createSourceContent('United States App Store', 'India'));
-    expect(flagCode(el)).toBe('us');
+    expect(flagPicture(el)).toBe(flagImages.us);
     expect(el.textContent).not.toMatch(/United States/);
   });
 
   it('shows a one-word store country once, as a flag only', () => {
     const el = render(createSourceContent('Russia App Store', 'India'));
-    expect(flagCode(el)).toBe('ru');
+    expect(flagPicture(el)).toBe(flagImages.ru);
     expect(el.textContent).not.toMatch(/Russia/);
     expect(el.querySelectorAll('svg')).toHaveLength(1);
   });

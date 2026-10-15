@@ -52,11 +52,11 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 ### Privacy-First
 *   **Zero data collection** - We don't track you or collect anything about you
 *   **Saved on your device only** - Locations you looked up are kept in your browser for 90 days (up to 10,000), then forgotten
-*   **One outside website** - Country flag pictures load from flagcdn.com, which can see your IP address and which countries you look up. Nothing else leaves your browser
+*   **No outside websites** - Country flags are built in, so only X itself is ever contacted
 *   **Open source** - Full transparency, audit the code yourself
 
 ### Performance Optimized
-*   Flag pictures start loading early so they show up fast
+*   Built-in flags, so they show up instantly
 *   Smart caching system
 *   Efficient DOM manipulation
 *   Minimal resource footprint
@@ -108,6 +108,7 @@ X-Ray's **click-to-reveal** approach means:
 ### What It Does Not Do
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No tracking or analytics
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No data collection
+*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No outside websites (only X is contacted)
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No cookies
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No user profiling
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No ads
@@ -116,7 +117,7 @@ X-Ray's **click-to-reveal** approach means:
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Access only publicly available profile information
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Keep looked-up locations only in your browser, for 90 days
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Use standard web security practices (XSS prevention, origin validation)
-*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Load country flag pictures from flagcdn.com, which can see your IP address and which countries you look up
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Show country flags from pictures built into the extension
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Respect Twitter/X rate limits with click-to-reveal
 
 **Your privacy is our priority.**
@@ -234,7 +235,7 @@ Contributions are welcome! Feel free to:
 
 ## <img src="screenshots/icons/heart.svg" width="18" height="18" align="baseline"> Acknowledgments
 
-*   Country flags provided by [FlagCDN](https://flagcdn.com)
+*   Country flag pictures from [FlagCDN](https://flagcdn.com), built into the extension
 *   Icons designed with love
 *   Built for the Twitter/X community
 
