@@ -255,8 +255,8 @@ async function addPost(handle) {
   article.dataset.testid = 'tweet';
   article.innerHTML = `<div data-testid="User-Name"><a href="/${handle}">${handle}</a></div><div><div data-testid="caret"></div></div>`;
   document.body.append(article);
-  await vi.waitFor(() => expect(article.querySelector('.loc-btn')).not.toBeNull());
-  return article.querySelector('.loc-btn');
+  await vi.waitFor(() => expect(article.querySelector('.xray-pin')).not.toBeNull());
+  return article.querySelector('.xray-pin');
 }
 
 const lookupFrame = () => document.querySelector('iframe')?.contentWindow;
@@ -300,21 +300,21 @@ describe('pin lookups', () => {
     pin.click();
 
     vi.advanceTimersByTime(9999);
-    expect(state(pin)).toEqual({ cls: 'loc-pill loading', text: 'Locating...', clickable: false });
+    expect(state(pin)).toEqual({ cls: 'xray-pill loading', text: 'Locating...', clickable: false });
 
     vi.advanceTimersByTime(1);
-    expect(state(pin)).toEqual({ cls: 'loc-pill unavailable', text: 'Not available', clickable: false });
+    expect(state(pin)).toEqual({ cls: 'xray-pill unavailable', text: 'Not available', clickable: false });
 
     vi.advanceTimersByTime(2999);
     expect(state(pin).text).toBe('Not available');
 
     vi.advanceTimersByTime(1);
-    expect(state(pin)).toEqual({ cls: 'loc-btn', text: '', clickable: true });
+    expect(state(pin)).toEqual({ cls: 'xray-pin', text: '', clickable: true });
     expect(pin.querySelector('svg')).not.toBeNull();
 
     // The restored pin starts a new lookup.
     pin.click();
-    expect(state(pin)).toEqual({ cls: 'loc-pill loading', text: 'Locating...', clickable: false });
+    expect(state(pin)).toEqual({ cls: 'xray-pill loading', text: 'Locating...', clickable: false });
     vi.advanceTimersByTime(13000);
   });
 
@@ -324,7 +324,7 @@ describe('pin lookups', () => {
     found('store_acct', 'India', 'United States App Store');
     document.querySelector('[data-handle="store_acct"]').dispatchEvent(new MouseEvent('mouseenter'));
 
-    const card = document.getElementById('loc-hover-card').textContent;
+    const card = document.querySelector('.xray-hover-card').textContent;
     expect(card).toContain('United States · iOS');
     expect(card).not.toContain('United states');
   });
@@ -337,10 +337,10 @@ describe('pin lookups', () => {
     found('fresh_acct', 'Japan', 'Web App');
 
     const pill = document.querySelector('[data-handle="fresh_acct"]');
-    expect(state(pill)).toMatchObject({ cls: 'loc-pill', clickable: true });
+    expect(state(pill)).toMatchObject({ cls: 'xray-pill', clickable: true });
 
     pill.dispatchEvent(new MouseEvent('mouseenter'));
-    expect(document.getElementById('loc-hover-card').textContent).toContain('Japan');
+    expect(document.querySelector('.xray-hover-card').textContent).toContain('Japan');
 
     pill.click();
     expect(writeText).toHaveBeenCalledWith('Japan (Web App)');
@@ -364,7 +364,7 @@ describe('pin lookups', () => {
     });
 
     pill.dispatchEvent(new MouseEvent('mouseenter'));
-    const card = document.getElementById('loc-hover-card');
+    const card = document.querySelector('.xray-hover-card');
 
     expect(card.style.left).toBe('208px');
     expect(card.classList.contains('pos-left')).toBe(false);
@@ -387,7 +387,7 @@ describe('pin lookups', () => {
     });
 
     pill.dispatchEvent(new MouseEvent('mouseenter'));
-    const card = document.getElementById('loc-hover-card');
+    const card = document.querySelector('.xray-hover-card');
 
     expect(card.classList.contains('pos-left')).toBe(true);
     expect(card.classList.contains('android-device')).toBe(true);
@@ -417,7 +417,7 @@ describe('pin lookups', () => {
     vi.advanceTimersByTime(1800);
     expect(pill.textContent).toContain('Germany');
     expect(pill.textContent).not.toContain('Copied!');
-    expect(pill.className).toBe('loc-pill');
+    expect(pill.className).toBe('xray-pill');
 
     // It can be copied again later
     pill.click();
@@ -462,7 +462,7 @@ describe('pin lookups', () => {
     await Promise.resolve();
 
     expect(writeText).toHaveBeenCalledWith('France (iOS)');
-    expect(pill.className).toBe('loc-pill');
+    expect(pill.className).toBe('xray-pill');
     expect(pill.textContent).toContain('France');
     expect(pill.textContent).not.toContain('Copied!');
   });
@@ -476,7 +476,7 @@ describe('pin lookups', () => {
     vi.advanceTimersByTime(5000);
 
     const pill = document.querySelector('[data-handle="quick_acct"]');
-    expect(pill.className).toBe('loc-pill');
+    expect(pill.className).toBe('xray-pill');
     expect(pill.textContent).toContain('Kenya');
     expect(pill.textContent).not.toContain('Not available');
   });
@@ -486,7 +486,7 @@ describe('pin lookups', () => {
     pin.click();
     found('droid_acct', 'Brazil', 'Android App');
     expect(state(document.querySelector('[data-handle="droid_acct"]'))).toMatchObject({
-      cls: 'loc-pill android-device',
+      cls: 'xray-pill android-device',
       clickable: true,
     });
 
@@ -495,9 +495,9 @@ describe('pin lookups', () => {
     article.dataset.testid = 'tweet';
     article.innerHTML = `<div data-testid="User-Name"><a href="/droid_acct">droid_acct</a></div><div><div data-testid="caret"></div></div>`;
     document.body.append(article);
-    await vi.waitFor(() => expect(article.querySelector('.loc-pill')).not.toBeNull());
-    expect(state(article.querySelector('.loc-pill'))).toMatchObject({
-      cls: 'loc-pill android-device',
+    await vi.waitFor(() => expect(article.querySelector('.xray-pill')).not.toBeNull());
+    expect(state(article.querySelector('.xray-pill'))).toMatchObject({
+      cls: 'xray-pill android-device',
       clickable: true,
     });
   });
@@ -509,7 +509,7 @@ describe('pin lookups', () => {
 
     const pill = document.querySelector('[data-handle="evil_acct"]');
     pill.dispatchEvent(new MouseEvent('mouseenter'));
-    const card = document.getElementById('loc-hover-card');
+    const card = document.querySelector('.xray-hover-card');
 
     for (const el of [pill, card]) {
       expect(el.querySelector('u, [data-injected]')).toBeNull();
@@ -528,7 +528,7 @@ describe('pin lookups', () => {
     found('late_acct', 'Japan', 'Web App');
     vi.advanceTimersByTime(3000);
 
-    expect(state(pin)).toEqual({ cls: 'loc-btn', text: '', clickable: true });
+    expect(state(pin)).toEqual({ cls: 'xray-pin', text: '', clickable: true });
     expect(saved()).not.toHaveProperty('late_acct');
   });
 
@@ -560,7 +560,7 @@ describe('answers that are not from the lookup', () => {
     const pin = await addPost('target_acct');
     send({ type: 'X_LOCATION_FOUND', handle: 'target_acct', location: 'Antarctica', source: 'Fake App' }, window);
 
-    expect(pin.className).toBe('loc-btn');
+    expect(pin.className).toBe('xray-pin');
     await settle();
     expect(saved()).not.toHaveProperty('target_acct');
   });
@@ -634,7 +634,7 @@ describe('saved results', () => {
     article.dataset.testid = 'tweet';
     article.innerHTML = `<div data-testid="User-Name"><a href="/MovedAcct">m</a></div><div><div data-testid="caret"></div></div>`;
     document.body.append(article);
-    await vi.waitFor(() => expect(article.querySelector('.loc-pill')?.textContent).toContain('Chile'));
+    await vi.waitFor(() => expect(article.querySelector('.xray-pill')?.textContent).toContain('Chile'));
   });
 
   it('keeps the date of older results when a new one is saved', async () => {
@@ -748,7 +748,7 @@ describe('odd data from X', () => {
     fine.innerHTML = `<div data-testid="User-Name"><a href="/fine_acct">f</a></div><div><div data-testid="caret"></div></div>`;
     document.body.append(broken, fine);
 
-    await vi.waitFor(() => expect(fine.querySelector('.loc-btn')).not.toBeNull());
+    await vi.waitFor(() => expect(fine.querySelector('.xray-pin')).not.toBeNull());
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('[X-Ray]'), expect.any(Error));
     warn.mockRestore();
   });
@@ -837,11 +837,11 @@ describe('keyboard and screen reader use', () => {
 
     pin.click();
     expect(pin.textContent.trim()).toBe('Locating...');
-    expect(pin.className).toBe('loc-pill loading');
+    expect(pin.className).toBe('xray-pill loading');
 
     // Finishes the lookup so the next test starts with an empty queue.
     found('kbd_twice', 'Spain', 'Web App');
-    expect(pin.className).toBe('loc-pill');
+    expect(pin.className).toBe('xray-pill');
   });
 
   it('shows the info card when the pill gets keyboard focus and hides it when focus leaves', async () => {
@@ -853,22 +853,22 @@ describe('keyboard and screen reader use', () => {
     pill.dispatchEvent(new FocusEvent('focus'));
     // An earlier test may have left the card open, so wait for this pill's details.
     await vi.waitFor(() => {
-      const card = document.getElementById('loc-hover-card');
+      const card = document.querySelector('.xray-hover-card');
       expect(card.classList.contains('show')).toBe(true);
       expect(card.textContent).toContain('Canada');
     });
 
     pill.dispatchEvent(new FocusEvent('blur'));
-    expect(document.getElementById('loc-hover-card').classList.contains('show')).toBe(false);
+    expect(document.querySelector('.xray-hover-card').classList.contains('show')).toBe(false);
   });
 
   it('shows the pin hint on keyboard focus and hides it when focus leaves', async () => {
     const pin = await addPost('kbd_hint');
     pin.dispatchEvent(new FocusEvent('focus'));
-    expect(document.getElementById('x-tooltip').style.display).toBe('block');
+    expect(document.querySelector('.xray-tooltip').style.display).toBe('block');
 
     pin.dispatchEvent(new FocusEvent('blur'));
-    expect(document.getElementById('x-tooltip').style.display).toBe('none');
+    expect(document.querySelector('.xray-tooltip').style.display).toBe('none');
   });
 });
 

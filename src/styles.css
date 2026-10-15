@@ -77,13 +77,13 @@
   white-space: nowrap;
 }
 
-.loc-btn:focus-visible,
-.loc-pill:focus-visible {
+.xray-pin:focus-visible,
+.xray-pill:focus-visible {
   outline: 2px solid #1d9bf0;
   outline-offset: 2px;
 }
 
-.loc-btn {
+.xray-pin {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -102,16 +102,16 @@
   box-sizing: border-box;
 }
 
-.loc-btn:hover {
+.xray-pin:hover {
   background-color: rgba(29, 155, 240, 0.15);
   color: #40b3ff;
 }
 
-.loc-btn:active {
+.xray-pin:active {
   background-color: rgba(29, 155, 240, 0.25);
 }
 
-.loc-pill {
+.xray-pill {
   display: inline-flex;
   align-items: center;
   position: relative;
@@ -143,7 +143,7 @@
   box-sizing: border-box;
 }
 
-.loc-pill::before {
+.xray-pill::before {
   content: '';
   position: absolute;
   inset: -2px;
@@ -173,11 +173,11 @@
   animation: rotateBorder 3s linear infinite;
 }
 
-.loc-pill:hover::before {
+.xray-pill:hover::before {
   opacity: 1;
 }
 
-.loc-pill:hover {
+.xray-pill:hover {
   background: linear-gradient(
     135deg,
     rgba(29, 155, 240, 0.18) 0%,
@@ -194,7 +194,7 @@
     0 2px 8px rgba(29, 155, 240, 0.2);
 }
 
-.loc-pill:active {
+.xray-pill:active {
   box-shadow: 0 1px 2px rgba(29, 155, 240, 0.1);
 }
 
@@ -226,7 +226,7 @@
   gap: 3px;
 }
 
-.loc-pill.android-device {
+.xray-pill.android-device {
   background: linear-gradient(
     135deg,
     rgba(52, 168, 83, 0.12) 0%,
@@ -241,7 +241,7 @@
     0 1px 3px rgba(52, 168, 83, 0.08);
 }
 
-.loc-pill.android-device:hover {
+.xray-pill.android-device:hover {
   background: linear-gradient(
     135deg,
     rgba(52, 168, 83, 0.18) 0%,
@@ -258,7 +258,7 @@
     0 2px 8px rgba(52, 168, 83, 0.2);
 }
 
-.loc-pill.android-device::before {
+.xray-pill.android-device::before {
   background: conic-gradient(
     from var(--angle),
     transparent 0%,
@@ -271,11 +271,11 @@
   );
 }
 
-.loc-pill.android-device .source-text {
+.xray-pill.android-device .source-text {
   border-left-color: rgba(52, 168, 83, 0.25);
 }
 
-.loc-pill.copied {
+.xray-pill.copied {
   background: linear-gradient(
     135deg,
     rgba(0, 186, 124, 0.15) 0%,
@@ -290,7 +290,7 @@
   border-color: rgba(0, 186, 124, 0.2);
 }
 
-.loc-pill.copied::before {
+.xray-pill.copied::before {
   background: conic-gradient(
     from var(--angle),
     transparent 0%,
@@ -305,7 +305,7 @@
   animation: rotateBorder 2s linear infinite;
 }
 
-.loc-pill.loading {
+.xray-pill.loading {
   background: linear-gradient(
     135deg,
     rgba(29, 155, 240, 0.12) 0%,
@@ -320,7 +320,7 @@
   height: 20px;
 }
 
-.loc-pill.unavailable {
+.xray-pill.unavailable {
   color: var(--xray-muted);
   background: var(--xray-muted-bg);
   border-color: var(--xray-muted-border);
@@ -328,18 +328,18 @@
   pointer-events: none;
 }
 
-.loc-pill.unavailable::before {
+.xray-pill.unavailable::before {
   display: none;
 }
 
-.loc-pill.loading .loading-text {
+.xray-pill.loading .loading-text {
   color: #1d9bf0;
   position: relative;
   display: inline-block;
   font-weight: 600;
 }
 
-.loc-pill.loading .loading-text::before {
+.xray-pill.loading .loading-text::before {
   content: attr(data-text);
   position: absolute;
   top: 0;
@@ -368,7 +368,7 @@
   }
 }
 
-#x-tooltip {
+.xray-tooltip {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -376,7 +376,7 @@
   backdrop-filter: blur(8px);
 }
 
-.loc-hover-card {
+.xray-hover-card {
   position: absolute;
   background: linear-gradient(135deg, rgba(15, 20, 25, 0.98) 0%, rgba(25, 30, 35, 0.98) 100%);
   backdrop-filter: blur(12px);
@@ -398,7 +398,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
-.loc-hover-card.android-device {
+.xray-hover-card.android-device {
   border-color: rgba(52, 168, 83, 0.3);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
@@ -406,16 +406,16 @@
     0 2px 12px rgba(52, 168, 83, 0.12);
 }
 
-.loc-hover-card.pos-left {
+.xray-hover-card.pos-left {
   transform: translateX(4px);
 }
 
-.loc-hover-card.show {
+.xray-hover-card.show {
   opacity: 1;
   transform: translateX(0);
 }
 
-.loc-hover-row {
+.xray-hover-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -425,11 +425,11 @@
   line-height: 1.4;
 }
 
-.loc-hover-row:not(:last-child) {
+.xray-hover-row:not(:last-child) {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.loc-hover-label {
+.xray-hover-label {
   color: #8b98a5;
   font-size: 10px;
   font-weight: 600;
@@ -439,7 +439,7 @@
   flex-shrink: 0;
 }
 
-.loc-hover-value {
+.xray-hover-value {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -448,24 +448,24 @@
   flex: 1;
 }
 
-.loc-hover-card .flag-img {
+.xray-hover-card .flag-img {
   width: 14.5px;
   height: 11px;
   margin-right: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.loc-hover-card .globe-icon {
+.xray-hover-card .globe-icon {
   margin-right: 0;
   opacity: 0.7;
 }
 
-.loc-hover-card .globe-icon svg {
+.xray-hover-card .globe-icon svg {
   width: 12.5px;
   height: 12.5px;
 }
 
-.loc-hover-card::before {
+.xray-hover-card::before {
   content: '';
   position: absolute;
   top: var(--arrow-top, calc(50% - 6px));
@@ -478,12 +478,12 @@
   transform: rotate(45deg);
 }
 
-.loc-hover-card.android-device::before {
+.xray-hover-card.android-device::before {
   border-left-color: rgba(52, 168, 83, 0.3);
   border-bottom-color: rgba(52, 168, 83, 0.3);
 }
 
-.loc-hover-card.pos-left::before {
+.xray-hover-card.pos-left::before {
   left: auto;
   right: -6px;
   border-left: none;
@@ -492,7 +492,7 @@
   border-right: 1px solid rgba(29, 155, 240, 0.3);
 }
 
-.loc-hover-card.android-device.pos-left::before {
+.xray-hover-card.android-device.pos-left::before {
   border-top-color: rgba(52, 168, 83, 0.3);
   border-right-color: rgba(52, 168, 83, 0.3);
 }

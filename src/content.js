@@ -203,7 +203,7 @@ if (window === window.top) {
     }
 
     const isAndroid = Boolean(source) && /android|play store/i.test(source);
-    const pillClass = isAndroid ? 'loc-pill android-device' : 'loc-pill';
+    const pillClass = isAndroid ? 'xray-pill android-device' : 'xray-pill';
     const pillLabel = `Copy location: ${describeResult(location, source)}`;
     btn.className = pillClass;
     btn.setAttribute('aria-label', pillLabel);
@@ -397,7 +397,7 @@ if (window === window.top) {
 
   function updateToLocationText(handle, location, source) {
     document
-      .querySelectorAll(`.loc-btn[data-handle="${handle}"], .loc-pill[data-handle="${handle}"]`)
+      .querySelectorAll(`.xray-pin[data-handle="${handle}"], .xray-pill[data-handle="${handle}"]`)
       .forEach((btn) => renderPill(btn, location, source));
 
     if (!busyHandle && requestQueue.length === 0 && scraperFrame) {
@@ -405,7 +405,6 @@ if (window === window.top) {
       scraperFrame = null;
     }
 
-    const tooltip = document.getElementById('x-tooltip');
     if (tooltip) tooltip.style.display = 'none';
   }
 
@@ -437,10 +436,10 @@ if (window === window.top) {
     const isFirst = requestQueue.length === 0 && !isProcessingQueue;
     const initialText = isFirst ? LOADING_TEXT : 'Queued...';
 
-    document.querySelectorAll(`.loc-btn[data-handle="${handle}"]`).forEach((btn) => {
+    document.querySelectorAll(`.xray-pin[data-handle="${handle}"]`).forEach((btn) => {
       btn.style.transition = 'none';
       btn.innerHTML = '';
-      btn.className = 'loc-pill loading';
+      btn.className = 'xray-pill loading';
       btn.setAttribute('aria-label', initialText);
       btn.style.pointerEvents = 'none';
       btn.offsetHeight;
@@ -479,7 +478,7 @@ if (window === window.top) {
   function loadAboutPage(handle) {
     busyHandle = handle;
 
-    document.querySelectorAll(`.loc-pill.loading[data-handle="${handle}"]`).forEach((pill) => {
+    document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach((pill) => {
       const text = pill.querySelector('.loading-text');
       text.textContent = LOADING_TEXT;
       text.setAttribute('data-text', LOADING_TEXT);
@@ -495,7 +494,7 @@ if (window === window.top) {
       busyHandle = null;
       isProcessingQueue = false;
       console.warn(`[X-Ray] No location data for @${handle} after ${LOOKUP_TIMEOUT_MS / 1000}s`);
-      document.querySelectorAll(`.loc-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
+      document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
       announce(`Not available for @${handle}`);
       if (scraperFrame) scraperFrame.src = 'about:blank';
       processQueue();
@@ -504,13 +503,13 @@ if (window === window.top) {
 
   // The pill keeps its original pin click handler, so restoring the class and icon makes it clickable again.
   function showNotAvailable(btn) {
-    btn.className = 'loc-pill unavailable';
+    btn.className = 'xray-pill unavailable';
     btn.setAttribute('aria-label', NOT_AVAILABLE_TEXT);
     btn.textContent = NOT_AVAILABLE_TEXT;
     setTimeout(() => {
       // A late result may have replaced the pill meanwhile; leave that alone.
       if (!btn.isConnected || !btn.classList.contains('unavailable')) return;
-      btn.className = 'loc-btn';
+      btn.className = 'xray-pin';
       btn.setAttribute('aria-label', PIN_LABEL);
       btn.innerHTML = ICONS.PIN;
       btn.style.pointerEvents = '';
@@ -520,10 +519,12 @@ if (window === window.top) {
   let tooltip;
 
   function startUI() {
-    if (document.getElementById('x-tooltip')) return;
+    // Set on the extension's own window, which page scripts cannot see or fake (unlike a page element).
+    if (window.xrayStarted) return;
+    window.xrayStarted = true;
 
     tooltip = document.createElement('div');
-    tooltip.id = 'x-tooltip';
+    tooltip.className = 'xray-tooltip';
     Object.assign(tooltip.style, {
       position: 'absolute',
       display: 'none',
@@ -555,7 +556,7 @@ if (window === window.top) {
     }
 
     function addLocationButton(article) {
-      if (article.querySelector('.loc-btn') || article.querySelector('.loc-pill')) return;
+      if (article.querySelector('.xray-pin') || article.querySelector('.xray-pill')) return;
 
       const userLink = article.querySelector('[data-testid="User-Name"] a[href^="/"]');
       if (!userLink) return;
@@ -575,7 +576,7 @@ if (window === window.top) {
       if (locationMap[handle]) {
         renderPill(btn, locationMap[handle].loc, locationMap[handle].src);
       } else {
-        btn.className = 'loc-btn';
+        btn.className = 'xray-pin';
         btn.setAttribute('aria-label', PIN_LABEL);
         btn.innerHTML = ICONS.PIN;
 
@@ -584,7 +585,7 @@ if (window === window.top) {
           e.stopPropagation();
           tooltip.style.display = 'none';
           // Enter and Space still reach a pill that is looking up; only a pin may start a lookup.
-          if (btn.classList.contains('loc-btn')) queueRequest(handle);
+          if (btn.classList.contains('xray-pin')) queueRequest(handle);
         };
 
         btn.onmouseenter = btn.onfocus = () => showTooltip(btn, PIN_LABEL);
@@ -624,12 +625,12 @@ if (window === window.top) {
 
   function createHoverRow(label, icon, text) {
     const row = document.createElement('div');
-    row.className = 'loc-hover-row';
+    row.className = 'xray-hover-row';
     const labelEl = document.createElement('span');
-    labelEl.className = 'loc-hover-label';
+    labelEl.className = 'xray-hover-label';
     labelEl.textContent = label;
     const value = document.createElement('span');
-    value.className = 'loc-hover-value';
+    value.className = 'xray-hover-value';
     value.append(icon, text);
     row.append(labelEl, value);
     return row;
@@ -637,17 +638,17 @@ if (window === window.top) {
 
   function createHoverCard() {
     const card = document.createElement('div');
-    card.className = 'loc-hover-card';
-    card.id = 'loc-hover-card';
+    card.className = 'xray-hover-card';
     document.body.appendChild(card);
     return card;
   }
 
+  let hoverCard = null;
+
   function showHoverCard(btn, location, source) {
-    let card = document.getElementById('loc-hover-card');
-    if (!card) {
-      card = createHoverCard();
-    }
+    // Made again if the page removed it.
+    if (!hoverCard || !hoverCard.isConnected) hoverCard = createHoverCard();
+    const card = hoverCard;
 
     const isAndroid = Boolean(source) && /android|play store/i.test(source);
     if (isAndroid) {
@@ -715,10 +716,7 @@ if (window === window.top) {
   }
 
   function hideHoverCard() {
-    const card = document.getElementById('loc-hover-card');
-    if (card) {
-      card.classList.remove('show');
-    }
+    if (hoverCard) hoverCard.classList.remove('show');
   }
 
   // Saved results load first, so posts by accounts already looked up never flash a pin.
