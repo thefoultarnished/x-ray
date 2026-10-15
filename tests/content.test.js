@@ -253,13 +253,25 @@ describe('createSourceContent', () => {
 });
 
 // Adds a post the way X renders it and waits for the extension to add its pin.
-async function addPost(handle) {
+function newPost(handle) {
   const article = document.createElement('article');
   article.dataset.testid = 'tweet';
   article.innerHTML = `<div data-testid="User-Name"><a href="/${handle}">${handle}</a></div><div><div data-testid="caret"></div></div>`;
   document.body.append(article);
+  return article;
+}
+
+async function addPost(handle) {
+  const article = newPost(handle);
   await vi.waitFor(() => expect(article.querySelector('.xray-pin')).not.toBeNull());
   return article.querySelector('.xray-pin');
+}
+
+// A post by an account that already has a result, which gets its pill straight away.
+async function addKnownPost(handle) {
+  const article = newPost(handle);
+  await vi.waitFor(() => expect(article.querySelector('.xray-pill')).not.toBeNull());
+  return article.querySelector('.xray-pill');
 }
 
 const lookupFrame = () => document.querySelector('iframe')?.contentWindow;
@@ -754,6 +766,49 @@ describe('odd data from X', () => {
     await vi.waitFor(() => expect(fine.querySelector('.xray-pin')).not.toBeNull());
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('[X-Ray]'), expect.any(Error));
     warn.mockRestore();
+  });
+});
+
+describe('account names that match built-in object names', () => {
+  afterEach(removePosts);
+
+  it.each(['constructor', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf'])(
+    'gives @%s a pin, looks it up and shows the real result',
+    async (handle) => {
+      const pin = await addPost(handle);
+      expect(pin.className).toBe('xray-pin');
+
+      userClick(pin);
+      expect(pin.className).toBe('xray-pill loading');
+      found(handle, 'Peru', 'Web App');
+
+      expect(pin.className).toBe('xray-pill');
+      expect(pin.textContent).toContain('Peru');
+      expect(pin.textContent).not.toContain('Unknown Loc');
+    }
+  );
+
+  it('remembers a result for an account named __proto__ without touching other accounts', async () => {
+    const pin = await addPost('__proto__');
+    userClick(pin);
+    found('__proto__', 'Chile', 'Web App');
+
+    const again = await addKnownPost('__proto__');
+    expect(again.textContent).toContain('Chile');
+
+    const other = await addPost('plain_acct');
+    expect(other.className).toBe('xray-pin');
+    expect({}.loc).toBeUndefined();
+  });
+
+  it('still shows a saved result straight away for normal accounts', async () => {
+    const pin = await addPost('normal_first');
+    userClick(pin);
+    found('normal_first', 'Japan', 'iOS');
+
+    const again = await addKnownPost('normal_first');
+    expect(again.className).toBe('xray-pill');
+    expect(again.textContent).toContain('Japan');
   });
 });
 

@@ -266,7 +266,8 @@ if (window === window.top) {
     btn.onmouseleave = btn.onblur = () => hideHoverCard();
   }
 
-  const locationMap = {};
+  // A Map, because a plain object already has entries like "constructor" that real account names can match.
+  const locationMap = new Map();
   const PIN_LABEL = 'Get Location & App Store';
   let liveRegion = null;
 
@@ -336,7 +337,7 @@ if (window === window.top) {
       localStorage.removeItem(OLD_CACHE_KEY);
       for (const [key, entry] of Object.entries(await store.get(null))) {
         if (key.startsWith(SAVED_PREFIX) && isUsable(entry, now)) {
-          locationMap[key.slice(SAVED_PREFIX.length)] = { loc: entry.loc, src: entry.src };
+          locationMap.set(key.slice(SAVED_PREFIX.length), { loc: entry.loc, src: entry.src });
         }
       }
     } catch (e) {
@@ -353,7 +354,7 @@ if (window === window.top) {
   }
 
   async function saveToCache(handle, loc, src) {
-    locationMap[handle] = { loc, src };
+    locationMap.set(handle, { loc, src });
     const now = Date.now();
     try {
       const store = savedStore();
@@ -438,7 +439,7 @@ if (window === window.top) {
   let isProcessingQueue = false;
 
   function queueRequest(handle) {
-    if (locationMap[handle]) return;
+    if (locationMap.has(handle)) return;
     if (requestQueueSet.has(handle)) return;
 
     const isFirst = requestQueue.length === 0 && !isProcessingQueue;
@@ -579,8 +580,9 @@ if (window === window.top) {
       btn.type = 'button';
       btn.dataset.handle = handle;
 
-      if (locationMap[handle]) {
-        renderPill(btn, locationMap[handle].loc, locationMap[handle].src);
+      if (locationMap.has(handle)) {
+        const { loc, src } = locationMap.get(handle);
+        renderPill(btn, loc, src);
       } else {
         btn.className = 'xray-pin';
         btn.setAttribute('aria-label', PIN_LABEL);
