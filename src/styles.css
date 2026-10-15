@@ -1,11 +1,30 @@
 /* Prefixed so they can't clash with X's own variables on the shared page root. */
 :root {
+  --xray-accent: #1d9bf0;
+  --xray-accent-rgb: 29, 155, 240;
+  --xray-accent-hover: #40b3ff;
+  --xray-android: #34a853;
+  --xray-android-rgb: 52, 168, 83;
+  --xray-copied: #00ba7c;
+  --xray-copied-rgb: 0, 186, 124;
   --xray-muted: #71767b;
   --xray-muted-bg: rgba(113, 118, 123, 0.12);
   --xray-muted-border: rgba(113, 118, 123, 0.25);
+  --xray-card-rgb: 15, 20, 25;
+  --xray-card-end-rgb: 25, 30, 35;
+  --xray-black-rgb: 0, 0, 0;
+  --xray-white-rgb: 255, 255, 255;
+  --xray-white: #ffffff;
+  --xray-text: #e7e9ea;
+  --xray-text-dim: #8b98a5;
+  --xray-radius-pill: 14px;
+  --xray-radius-card: 12px;
+  --xray-radius-flag: 2px;
+  --xray-radius-hint: 8px;
+  --xray-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
-@keyframes fadeIn {
+@keyframes xray-fade-in {
   from {
     opacity: 0;
     transform: translateY(-2px);
@@ -16,7 +35,7 @@
   }
 }
 
-@keyframes gradientShift {
+@keyframes xray-gradient-shift {
   0% {
     background-position: 0% 50%;
   }
@@ -28,16 +47,16 @@
   }
 }
 
-@keyframes rotateBorder {
+@keyframes xray-rotate-border {
   0% {
-    --angle: 0deg;
+    --xray-angle: 0deg;
   }
   100% {
-    --angle: 360deg;
+    --xray-angle: 360deg;
   }
 }
 
-@keyframes shine {
+@keyframes xray-shine {
   0% {
     background-position: 200% center;
   }
@@ -46,7 +65,7 @@
   }
 }
 
-@property --angle {
+@property --xray-angle {
   syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
@@ -65,7 +84,7 @@
 
 .xray-pin:focus-visible,
 .xray-pill:focus-visible {
-  outline: 2px solid #1d9bf0;
+  outline: 2px solid var(--xray-accent);
   outline-offset: 2px;
 }
 
@@ -84,17 +103,17 @@
     background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
     color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-right: 10px;
-  color: #1d9bf0;
+  color: var(--xray-accent);
   box-sizing: border-box;
 }
 
 .xray-pin:hover {
-  background-color: rgba(29, 155, 240, 0.15);
-  color: #40b3ff;
+  background-color: rgba(var(--xray-accent-rgb), 0.15);
+  color: var(--xray-accent-hover);
 }
 
 .xray-pin:active {
-  background-color: rgba(29, 155, 240, 0.25);
+  background-color: rgba(var(--xray-accent-rgb), 0.25);
 }
 
 .xray-pill {
@@ -103,28 +122,28 @@
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(29, 155, 240, 0.12) 0%,
-    rgba(29, 155, 240, 0.08) 50%,
-    rgba(29, 155, 240, 0.12) 100%
+    rgba(var(--xray-accent-rgb), 0.12) 0%,
+    rgba(var(--xray-accent-rgb), 0.08) 50%,
+    rgba(var(--xray-accent-rgb), 0.12) 100%
   );
   background-size: 200% 200%;
-  color: #1d9bf0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color: var(--xray-accent);
+  font-family: var(--xray-font);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 2px 8px;
-  border-radius: 14px;
+  border-radius: var(--xray-radius-pill);
   cursor: pointer;
   margin-right: 10px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   height: 20px;
   white-space: nowrap;
-  border: 1px solid rgba(29, 155, 240, 0.3);
+  border: 1px solid rgba(var(--xray-accent-rgb), 0.3);
   box-shadow:
-    0 0 0 1px rgba(29, 155, 240, 0.1),
-    0 1px 3px rgba(29, 155, 240, 0.08);
-  animation: fadeIn 0.3s ease-out;
+    0 0 0 1px rgba(var(--xray-accent-rgb), 0.1),
+    0 1px 3px rgba(var(--xray-accent-rgb), 0.08);
+  animation: xray-fade-in 0.3s ease-out;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -133,16 +152,16 @@
   content: '';
   position: absolute;
   inset: -2px;
-  border-radius: 14px;
+  border-radius: var(--xray-radius-pill);
   padding: 1.5px;
   background: conic-gradient(
-    from var(--angle),
+    from var(--xray-angle),
     transparent 0%,
-    rgba(29, 155, 240, 0) 20%,
-    rgba(29, 155, 240, 0.4) 40%,
-    rgba(29, 155, 240, 0.8) 50%,
-    rgba(29, 155, 240, 0.4) 60%,
-    rgba(29, 155, 240, 0) 80%,
+    rgba(var(--xray-accent-rgb), 0) 20%,
+    rgba(var(--xray-accent-rgb), 0.4) 40%,
+    rgba(var(--xray-accent-rgb), 0.8) 50%,
+    rgba(var(--xray-accent-rgb), 0.4) 60%,
+    rgba(var(--xray-accent-rgb), 0) 80%,
     transparent 100%
   );
   -webkit-mask:
@@ -161,53 +180,53 @@
 /* Spins only while it can be seen, so idle pills cost nothing. */
 .xray-pill:hover::before {
   opacity: 1;
-  animation: rotateBorder 3s linear infinite;
+  animation: xray-rotate-border 3s linear infinite;
 }
 
 .xray-pill:hover {
   background: linear-gradient(
     135deg,
-    rgba(29, 155, 240, 0.18) 0%,
-    rgba(29, 155, 240, 0.12) 50%,
-    rgba(29, 155, 240, 0.18) 100%
+    rgba(var(--xray-accent-rgb), 0.18) 0%,
+    rgba(var(--xray-accent-rgb), 0.12) 50%,
+    rgba(var(--xray-accent-rgb), 0.18) 100%
   );
   background-size: 200% 200%;
   animation:
-    gradientShift 3s ease infinite,
-    fadeIn 0.3s ease-out;
-  border-color: rgba(29, 155, 240, 0.45);
+    xray-gradient-shift 3s ease infinite,
+    xray-fade-in 0.3s ease-out;
+  border-color: rgba(var(--xray-accent-rgb), 0.45);
   box-shadow:
-    0 0 0 1px rgba(29, 155, 240, 0.2),
-    0 2px 8px rgba(29, 155, 240, 0.2);
+    0 0 0 1px rgba(var(--xray-accent-rgb), 0.2),
+    0 2px 8px rgba(var(--xray-accent-rgb), 0.2);
 }
 
 .xray-pill:active {
-  box-shadow: 0 1px 2px rgba(29, 155, 240, 0.1);
+  box-shadow: 0 1px 2px rgba(var(--xray-accent-rgb), 0.1);
 }
 
-.flag-img {
+.xray-flag {
   width: 13.5px;
   height: 10px;
   margin-right: 5px;
-  border-radius: 2px;
+  border-radius: var(--xray-radius-flag);
   object-fit: cover;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px rgba(var(--xray-black-rgb), 0.15);
+  border: 0.5px solid rgba(var(--xray-black-rgb), 0.08);
 }
 
-.globe-icon {
+.xray-globe {
   margin-right: 5px;
   display: inline-flex;
   align-items: center;
 }
 
-.source-text {
+.xray-source {
   opacity: 0.75;
   font-size: 9px;
   font-weight: 500;
   margin-left: 5px;
   padding-left: 5px;
-  border-left: 1.5px solid rgba(29, 155, 240, 0.25);
+  border-left: 1.5px solid rgba(var(--xray-accent-rgb), 0.25);
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -216,92 +235,92 @@
 .xray-pill.android-device {
   background: linear-gradient(
     135deg,
-    rgba(52, 168, 83, 0.12) 0%,
-    rgba(52, 168, 83, 0.08) 50%,
-    rgba(52, 168, 83, 0.12) 100%
+    rgba(var(--xray-android-rgb), 0.12) 0%,
+    rgba(var(--xray-android-rgb), 0.08) 50%,
+    rgba(var(--xray-android-rgb), 0.12) 100%
   );
   background-size: 200% 200%;
-  color: #34a853;
-  border-color: rgba(52, 168, 83, 0.3);
+  color: var(--xray-android);
+  border-color: rgba(var(--xray-android-rgb), 0.3);
   box-shadow:
-    0 0 0 1px rgba(52, 168, 83, 0.1),
-    0 1px 3px rgba(52, 168, 83, 0.08);
+    0 0 0 1px rgba(var(--xray-android-rgb), 0.1),
+    0 1px 3px rgba(var(--xray-android-rgb), 0.08);
 }
 
 .xray-pill.android-device:hover {
   background: linear-gradient(
     135deg,
-    rgba(52, 168, 83, 0.18) 0%,
-    rgba(52, 168, 83, 0.12) 50%,
-    rgba(52, 168, 83, 0.18) 100%
+    rgba(var(--xray-android-rgb), 0.18) 0%,
+    rgba(var(--xray-android-rgb), 0.12) 50%,
+    rgba(var(--xray-android-rgb), 0.18) 100%
   );
   background-size: 200% 200%;
   animation:
-    gradientShift 3s ease infinite,
-    fadeIn 0.3s ease-out;
-  border-color: rgba(52, 168, 83, 0.45);
+    xray-gradient-shift 3s ease infinite,
+    xray-fade-in 0.3s ease-out;
+  border-color: rgba(var(--xray-android-rgb), 0.45);
   box-shadow:
-    0 0 0 1px rgba(52, 168, 83, 0.2),
-    0 2px 8px rgba(52, 168, 83, 0.2);
+    0 0 0 1px rgba(var(--xray-android-rgb), 0.2),
+    0 2px 8px rgba(var(--xray-android-rgb), 0.2);
 }
 
 .xray-pill.android-device::before {
   background: conic-gradient(
-    from var(--angle),
+    from var(--xray-angle),
     transparent 0%,
-    rgba(52, 168, 83, 0) 20%,
-    rgba(52, 168, 83, 0.4) 40%,
-    rgba(52, 168, 83, 0.8) 50%,
-    rgba(52, 168, 83, 0.4) 60%,
-    rgba(52, 168, 83, 0) 80%,
+    rgba(var(--xray-android-rgb), 0) 20%,
+    rgba(var(--xray-android-rgb), 0.4) 40%,
+    rgba(var(--xray-android-rgb), 0.8) 50%,
+    rgba(var(--xray-android-rgb), 0.4) 60%,
+    rgba(var(--xray-android-rgb), 0) 80%,
     transparent 100%
   );
 }
 
-.xray-pill.android-device .source-text {
-  border-left-color: rgba(52, 168, 83, 0.25);
+.xray-pill.android-device .xray-source {
+  border-left-color: rgba(var(--xray-android-rgb), 0.25);
 }
 
 .xray-pill.copied {
   background: linear-gradient(
     135deg,
-    rgba(0, 186, 124, 0.15) 0%,
-    rgba(0, 186, 124, 0.1) 50%,
-    rgba(0, 186, 124, 0.15) 100%
+    rgba(var(--xray-copied-rgb), 0.15) 0%,
+    rgba(var(--xray-copied-rgb), 0.1) 50%,
+    rgba(var(--xray-copied-rgb), 0.15) 100%
   );
   background-size: 200% 200%;
   animation:
-    gradientShift 2s ease infinite,
-    fadeIn 0.3s ease-out;
-  color: #00ba7c;
-  border-color: rgba(0, 186, 124, 0.2);
+    xray-gradient-shift 2s ease infinite,
+    xray-fade-in 0.3s ease-out;
+  color: var(--xray-copied);
+  border-color: rgba(var(--xray-copied-rgb), 0.2);
 }
 
 .xray-pill.copied::before {
   background: conic-gradient(
-    from var(--angle),
+    from var(--xray-angle),
     transparent 0%,
-    rgba(0, 186, 124, 0) 20%,
-    rgba(0, 186, 124, 0.4) 40%,
-    rgba(0, 186, 124, 0.8) 50%,
-    rgba(0, 186, 124, 0.4) 60%,
-    rgba(0, 186, 124, 0) 80%,
+    rgba(var(--xray-copied-rgb), 0) 20%,
+    rgba(var(--xray-copied-rgb), 0.4) 40%,
+    rgba(var(--xray-copied-rgb), 0.8) 50%,
+    rgba(var(--xray-copied-rgb), 0.4) 60%,
+    rgba(var(--xray-copied-rgb), 0) 80%,
     transparent 100%
   );
   opacity: 1;
-  animation: rotateBorder 2s linear infinite;
+  animation: xray-rotate-border 2s linear infinite;
 }
 
 .xray-pill.loading {
   background: linear-gradient(
     135deg,
-    rgba(29, 155, 240, 0.12) 0%,
-    rgba(29, 155, 240, 0.08) 50%,
-    rgba(29, 155, 240, 0.12) 100%
+    rgba(var(--xray-accent-rgb), 0.12) 0%,
+    rgba(var(--xray-accent-rgb), 0.08) 50%,
+    rgba(var(--xray-accent-rgb), 0.12) 100%
   );
   background-size: 200% 200%;
   pointer-events: none;
-  border-radius: 14px;
+  border-radius: var(--xray-radius-pill);
   min-width: auto;
   width: auto;
   height: 20px;
@@ -320,7 +339,7 @@
 }
 
 .xray-pill.loading .loading-text {
-  color: #1d9bf0;
+  color: var(--xray-accent);
   position: relative;
   display: inline-block;
   font-weight: 600;
@@ -333,39 +352,49 @@
   left: 0;
   background: linear-gradient(
     110deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 35%,
-    rgba(255, 255, 255, 1) 50%,
-    rgba(255, 255, 255, 0) 65%,
-    rgba(255, 255, 255, 0) 100%
+    rgba(var(--xray-white-rgb), 0) 0%,
+    rgba(var(--xray-white-rgb), 0) 35%,
+    rgba(var(--xray-white-rgb), 1) 50%,
+    rgba(var(--xray-white-rgb), 0) 65%,
+    rgba(var(--xray-white-rgb), 0) 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shine 4s ease-in-out infinite;
+  animation: xray-shine 4s ease-in-out infinite;
 }
 
 .xray-tooltip {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: absolute;
+  display: none;
+  background: rgba(var(--xray-black-rgb), 0.92);
+  color: var(--xray-white);
+  padding: 7px 12px;
+  border-radius: var(--xray-radius-hint);
+  z-index: 99999;
+  pointer-events: none;
+  font-size: 12px;
+  white-space: nowrap;
+  font-family: var(--xray-font);
   font-weight: 500;
   letter-spacing: 0.01em;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(var(--xray-black-rgb), 0.15);
   backdrop-filter: blur(8px);
 }
 
 .xray-hover-card {
   position: absolute;
-  background: linear-gradient(135deg, rgba(15, 20, 25, 0.98) 0%, rgba(25, 30, 35, 0.98) 100%);
+  background: linear-gradient(135deg, rgba(var(--xray-card-rgb), 0.98) 0%, rgba(var(--xray-card-end-rgb), 0.98) 100%);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(29, 155, 240, 0.3);
-  border-radius: 12px;
+  border: 1px solid rgba(var(--xray-accent-rgb), 0.3);
+  border-radius: var(--xray-radius-card);
   padding: 10px 12px;
   min-width: 180px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(29, 155, 240, 0.1),
-    0 2px 12px rgba(29, 155, 240, 0.12);
+    0 8px 32px rgba(var(--xray-black-rgb), 0.4),
+    0 0 0 1px rgba(var(--xray-accent-rgb), 0.1),
+    0 2px 12px rgba(var(--xray-accent-rgb), 0.12);
   z-index: 100000;
   pointer-events: none;
   opacity: 0;
@@ -373,15 +402,15 @@
   transition:
     opacity 0.2s ease,
     transform 0.2s ease;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-family: var(--xray-font);
 }
 
 .xray-hover-card.android-device {
-  border-color: rgba(52, 168, 83, 0.3);
+  border-color: rgba(var(--xray-android-rgb), 0.3);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(52, 168, 83, 0.1),
-    0 2px 12px rgba(52, 168, 83, 0.12);
+    0 8px 32px rgba(var(--xray-black-rgb), 0.4),
+    0 0 0 1px rgba(var(--xray-android-rgb), 0.1),
+    0 2px 12px rgba(var(--xray-android-rgb), 0.12);
 }
 
 .xray-hover-card.pos-left {
@@ -398,17 +427,17 @@
   align-items: center;
   gap: 8px;
   padding: 5px 0;
-  color: #e7e9ea;
+  color: var(--xray-text);
   font-size: 11.5px;
   line-height: 1.4;
 }
 
 .xray-hover-row:not(:last-child) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(var(--xray-white-rgb), 0.06);
 }
 
 .xray-hover-label {
-  color: #8b98a5;
+  color: var(--xray-text-dim);
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -421,24 +450,24 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #ffffff;
+  color: var(--xray-white);
   font-weight: 500;
   flex: 1;
 }
 
-.xray-hover-card .flag-img {
+.xray-hover-card .xray-flag {
   width: 14.5px;
   height: 11px;
   margin-right: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(var(--xray-black-rgb), 0.3);
 }
 
-.xray-hover-card .globe-icon {
+.xray-hover-card .xray-globe {
   margin-right: 0;
   opacity: 0.7;
 }
 
-.xray-hover-card .globe-icon svg {
+.xray-hover-card .xray-globe svg {
   width: 12.5px;
   height: 12.5px;
 }
@@ -450,15 +479,15 @@
   left: -6px;
   width: 12px;
   height: 12px;
-  background: rgba(15, 20, 25, 0.98);
-  border-left: 1px solid rgba(29, 155, 240, 0.3);
-  border-bottom: 1px solid rgba(29, 155, 240, 0.3);
+  background: rgba(var(--xray-card-rgb), 0.98);
+  border-left: 1px solid rgba(var(--xray-accent-rgb), 0.3);
+  border-bottom: 1px solid rgba(var(--xray-accent-rgb), 0.3);
   transform: rotate(45deg);
 }
 
 .xray-hover-card.android-device::before {
-  border-left-color: rgba(52, 168, 83, 0.3);
-  border-bottom-color: rgba(52, 168, 83, 0.3);
+  border-left-color: rgba(var(--xray-android-rgb), 0.3);
+  border-bottom-color: rgba(var(--xray-android-rgb), 0.3);
 }
 
 .xray-hover-card.pos-left::before {
@@ -466,13 +495,13 @@
   right: -6px;
   border-left: none;
   border-bottom: none;
-  border-top: 1px solid rgba(29, 155, 240, 0.3);
-  border-right: 1px solid rgba(29, 155, 240, 0.3);
+  border-top: 1px solid rgba(var(--xray-accent-rgb), 0.3);
+  border-right: 1px solid rgba(var(--xray-accent-rgb), 0.3);
 }
 
 .xray-hover-card.android-device.pos-left::before {
-  border-top-color: rgba(52, 168, 83, 0.3);
-  border-right-color: rgba(52, 168, 83, 0.3);
+  border-top-color: rgba(var(--xray-android-rgb), 0.3);
+  border-right-color: rgba(var(--xray-android-rgb), 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {

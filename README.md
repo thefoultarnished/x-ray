@@ -151,7 +151,7 @@ X-Ray's **click-to-reveal** approach means:
 4.  Click the location pill to copy to clipboard
 
 ### Pro Tips
-*   **Hover** over the icon to see a "Get Location" tooltip
+*   **Hover** over the icon to see a "Get Location & App Store" tooltip
 *   **Hover** over location pills to see detailed info (Based in & Platform)
 *   **Saved results** - Locations you looked up appear instantly for 90 days, even after a refresh
 *   **Works everywhere** - Timeline, profiles, replies, search results

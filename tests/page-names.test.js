@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createRequire } from 'node:module';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 
@@ -30,7 +30,7 @@ beforeAll(async () => {
   globalThis.FLAG_IMAGES = require('../src/flags.js');
   require('../src/content.js');
   // Saved results load first, then the extension starts.
-  await new Promise((r) => setTimeout(r, 20));
+  await vi.waitFor(() => expect(document.querySelector('.xray-tooltip')).not.toBeNull());
 });
 
 // jsdom marks every click it makes as untrusted, so this stands in for a real click or key press.
@@ -57,20 +57,18 @@ const found = (handle, location, source) =>
 describe('page elements with the same names as the extension', () => {
   it('still adds a pin to every post when the page already has elements named like the extension', async () => {
     const article = addPost('planted_acct');
-    await new Promise((r) => setTimeout(r, 20));
-    expect(article.querySelectorAll('button')).toHaveLength(1);
+    await vi.waitFor(() => expect(article.querySelectorAll('button')).toHaveLength(1));
   });
 
   it('adds its pin even when the post already has elements called pin or pill', async () => {
     const article = addPost('lookalike_acct');
     article.querySelector('div').classList.add('loc-btn', 'loc-pill');
-    await new Promise((r) => setTimeout(r, 20));
-    expect(article.querySelectorAll('button')).toHaveLength(1);
+    await vi.waitFor(() => expect(article.querySelectorAll('button')).toHaveLength(1));
   });
 
   it('shows its own info card and leaves the page elements untouched', async () => {
     const article = addPost('card_acct');
-    await new Promise((r) => setTimeout(r, 20));
+    await vi.waitFor(() => expect(article.querySelector('button')).not.toBeNull());
     const pin = article.querySelector('button');
     userClick(pin);
     found('card_acct', 'Canada', 'iOS');

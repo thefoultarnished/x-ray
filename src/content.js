@@ -144,7 +144,7 @@ if (window === window.top) {
 
   function createGlobe() {
     const globe = document.createElement('span');
-    globe.className = 'globe-icon';
+    globe.className = 'xray-globe';
     globe.append(createIcon(ICONS.GLOBE));
     return globe;
   }
@@ -152,7 +152,7 @@ if (window === window.top) {
   function createFlagImage(code, alt) {
     const img = document.createElement('img');
     img.src = FLAG_IMAGES[code];
-    img.className = 'flag-img';
+    img.className = 'xray-flag';
     img.alt = alt;
     img.loading = 'eager';
     return img;
@@ -222,7 +222,7 @@ if (window === window.top) {
     btn.replaceChildren(createFlag(location), location || 'Unknown Loc');
     if (source) {
       const sourceText = document.createElement('span');
-      sourceText.className = 'source-text';
+      sourceText.className = 'xray-source';
       sourceText.append(createSourceContent(source, location));
       btn.append(sourceText);
     }
@@ -427,7 +427,7 @@ if (window === window.top) {
       .querySelectorAll(`.xray-pin[data-handle="${handle}"], .xray-pill[data-handle="${handle}"]`)
       .forEach((btn) => renderPill(btn, location, source));
 
-    if (tooltip) tooltip.style.display = 'none';
+    hideTooltip();
   }
 
   function getScraperFrame() {
@@ -468,7 +468,7 @@ if (window === window.top) {
       btn.style.transition = '';
 
       const globeIcon = document.createElement('span');
-      globeIcon.className = 'globe-icon';
+      globeIcon.className = 'xray-globe';
       globeIcon.innerHTML = ICONS.GLOBE;
 
       const loadingText = document.createElement('span');
@@ -545,18 +545,6 @@ if (window === window.top) {
 
     tooltip = document.createElement('div');
     tooltip.className = 'xray-tooltip';
-    Object.assign(tooltip.style, {
-      position: 'absolute',
-      display: 'none',
-      background: 'rgba(0, 0, 0, 0.92)',
-      color: '#fff',
-      padding: '7px 12px',
-      borderRadius: '8px',
-      zIndex: '99999',
-      pointerEvents: 'none',
-      fontSize: '12px',
-      whiteSpace: 'nowrap',
-    });
     document.body.appendChild(tooltip);
 
     liveRegion = document.createElement('div');
@@ -607,15 +595,16 @@ if (window === window.top) {
           if (!e.isTrusted) return;
           e.preventDefault();
           e.stopPropagation();
-          tooltip.style.display = 'none';
+          hideTooltip();
           // Enter and Space still reach a pill that is looking up; only a pin may start a lookup.
           if (btn.classList.contains('xray-pin')) queueRequest(handle);
         };
 
-        btn.onmouseenter = btn.onfocus = () => showTooltip(btn, PIN_LABEL);
-        btn.onmouseleave = btn.onblur = () => {
-          tooltip.style.display = 'none';
+        // These stay attached while the pin is a loading pill, which must not show the pin's hint.
+        btn.onmouseenter = btn.onfocus = () => {
+          if (btn.classList.contains('xray-pin')) showTooltip(btn, PIN_LABEL);
         };
+        btn.onmouseleave = btn.onblur = hideTooltip;
       }
 
       if (targetNode.parentNode) {
@@ -645,6 +634,7 @@ if (window === window.top) {
     const observer = new MutationObserver((mutations) => {
       // X removes posts as you scroll; the card must not stay behind for a pill that is gone.
       if (hoverTarget && !hoverTarget.isConnected) hideHoverCard();
+      if (hintTarget && !hintTarget.isConnected) hideTooltip();
       for (const mutation of mutations) mutation.addedNodes.forEach(collectChangedPosts);
       if (changedPosts.size && !checkScheduled) {
         checkScheduled = true;
@@ -657,12 +647,26 @@ if (window === window.top) {
     addButtons(document.querySelectorAll(POST_SELECTOR));
   }
 
-  function showTooltip(el, html) {
-    const rect = el.getBoundingClientRect();
-    tooltip.style.top = rect.bottom + window.scrollY + 5 + 'px';
-    tooltip.style.left = rect.left + 'px';
-    tooltip.textContent = html;
+  // The pin the hint is showing for, so the hint can go away if X removes that post.
+  let hintTarget = null;
+  // Width used until the browser can measure the hint.
+  const HINT_WIDTH_FALLBACK = 170;
+
+  function showTooltip(el, text) {
+    hintTarget = el;
+    tooltip.textContent = text;
     tooltip.style.display = 'block';
+    const rect = el.getBoundingClientRect();
+    const width = tooltip.offsetWidth || HINT_WIDTH_FALLBACK;
+    // Pins sit next to the post menu, close to the window edge in narrow windows.
+    const maxLeft = window.scrollX + window.innerWidth - width - CARD_MARGIN;
+    tooltip.style.top = rect.bottom + window.scrollY + 5 + 'px';
+    tooltip.style.left = Math.max(window.scrollX + CARD_MARGIN, Math.min(maxLeft, rect.left + window.scrollX)) + 'px';
+  }
+
+  function hideTooltip() {
+    hintTarget = null;
+    if (tooltip) tooltip.style.display = 'none';
   }
 
   function createHoverRow(label, icon, text) {

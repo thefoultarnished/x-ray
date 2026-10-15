@@ -65,7 +65,7 @@ function render(node) {
 }
 
 // The flag picture shown (compared with flagImages.<code>), or 'globe' when there is none.
-const flagPicture = (el) => el.querySelector('img.flag-img')?.getAttribute('src') ?? 'globe';
+const flagPicture = (el) => el.querySelector('img.xray-flag')?.getAttribute('src') ?? 'globe';
 const flagFor = (loc) => flagPicture(render(createFlag(loc)));
 
 describe('createFlag', () => {
@@ -128,7 +128,7 @@ describe('createFlag', () => {
     ]) {
       const el = render(createFlag(loc));
       expect(el.querySelector('img')).toBeNull();
-      expect(el.querySelector('.globe-icon svg')).not.toBeNull();
+      expect(el.querySelector('.xray-globe svg')).not.toBeNull();
     }
   });
 
@@ -145,7 +145,7 @@ describe('createFlag', () => {
 });
 
 describe('built-in flags', () => {
-  const sources = (el) => [...el.querySelectorAll('img.flag-img')].map((img) => img.getAttribute('src'));
+  const sources = (el) => [...el.querySelectorAll('img.xray-flag')].map((img) => img.getAttribute('src'));
 
   it('draws every flag from a picture inside the extension, never from a website', () => {
     const countries = ['Germany', 'Japan', 'England', 'Europe', 'USA', 'Côte d’Ivoire', 'Kosovo'];
@@ -210,7 +210,7 @@ describe('createSourceContent', () => {
 
   it('does not repeat the location already shown in the pill', () => {
     const el = render(createSourceContent('India App Store', 'India'));
-    expect(el.querySelector('img.flag-img')).toBeNull();
+    expect(el.querySelector('img.xray-flag')).toBeNull();
     expect(el.textContent).not.toMatch(/India/);
     expect(el.querySelectorAll('svg')).toHaveLength(1);
   });
@@ -230,7 +230,7 @@ describe('createSourceContent', () => {
 
   it('does not mistake a platform word for a country', () => {
     const el = render(createSourceContent('Android App', 'India'));
-    expect(el.querySelector('img.flag-img')).toBeNull();
+    expect(el.querySelector('img.xray-flag')).toBeNull();
   });
 
   it('handles locations containing regex characters', () => {
@@ -834,6 +834,133 @@ describe('checking posts as the page changes', () => {
   });
 });
 
+describe('pin hint display', () => {
+  const originalWidth = window.innerWidth;
+  afterEach(() => {
+    removePosts();
+    window.innerWidth = originalWidth;
+  });
+
+  const hint = () => document.querySelector('.xray-tooltip');
+
+  async function pinAt(handle, rect) {
+    const pin = await addPost(handle);
+    vi.spyOn(pin, 'getBoundingClientRect').mockReturnValue({ top: 60, bottom: 80, width: 20, height: 20, ...rect });
+    return pin;
+  }
+
+  it('shows the hint under the pin when there is room', async () => {
+    const pin = await pinAt('hint_room', { left: 100, right: 120 });
+    pin.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(hint().style.display).toBe('block');
+    expect(hint().textContent).toBe('Get Location & App Store');
+    expect(hint().style.left).toBe('100px');
+    expect(hint().style.top).toBe('85px');
+  });
+
+  it('keeps the hint inside the window when the pin is near the right edge', async () => {
+    window.innerWidth = 300;
+    const pin = await pinAt('hint_edge', { left: 280, right: 300 });
+    pin.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(parseFloat(hint().style.left)).toBe(300 - 170 - 8);
+  });
+
+  it('keeps the hint off the left edge in a very small window', async () => {
+    window.innerWidth = 100;
+    const pin = await pinAt('hint_tiny', { left: 60, right: 80 });
+    pin.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(parseFloat(hint().style.left)).toBe(8);
+  });
+
+  it('hides the hint when X removes the post it belongs to', async () => {
+    const pin = await pinAt('hint_gone', { left: 100, right: 120 });
+    pin.dispatchEvent(new FocusEvent('focus'));
+    expect(hint().style.display).toBe('block');
+
+    pin.closest('article').remove();
+    await vi.waitFor(() => expect(hint().style.display).toBe('none'));
+  });
+
+  it('keeps the hint when a different post is removed', async () => {
+    const pin = await pinAt('hint_stays', { left: 100, right: 120 });
+    const other = await addPost('hint_other');
+    pin.dispatchEvent(new FocusEvent('focus'));
+
+    other.closest('article').remove();
+    await settle();
+    expect(hint().style.display).toBe('block');
+  });
+
+  it('hides the hint when the pointer leaves and when the pin is clicked', async () => {
+    const pin = await pinAt('hint_leave', { left: 100, right: 120 });
+    pin.dispatchEvent(new MouseEvent('mouseenter'));
+    pin.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(hint().style.display).toBe('none');
+
+    pin.dispatchEvent(new MouseEvent('mouseenter'));
+    userClick(pin);
+    expect(hint().style.display).toBe('none');
+    found('hint_leave', 'Peru', 'Web App');
+  });
+});
+
+describe('pin hint on a pin that turned into a pill', () => {
+  afterEach(removePosts);
+
+  const hint = () => document.querySelector('.xray-tooltip');
+  const enter = (el) => el.dispatchEvent(new MouseEvent('mouseenter'));
+  const focus = (el) => el.dispatchEvent(new FocusEvent('focus'));
+
+  it('does not show the pin hint when focus or the pointer reaches a loading pill', async () => {
+    const pin = await addPost('hint_loading');
+    enter(pin);
+    userClick(pin);
+    expect(hint().style.display).toBe('none');
+
+    focus(pin);
+    expect(hint().style.display).toBe('none');
+    enter(pin);
+    expect(hint().style.display).toBe('none');
+    found('hint_loading', 'Peru', 'Web App');
+  });
+
+  it('does not show the pin hint on a Not available pill, but shows it again once the pin is back', async () => {
+    const pin = await addPost('hint_unavail');
+    vi.useFakeTimers();
+    userClick(pin);
+    vi.advanceTimersByTime(10000);
+    expect(pin.className).toBe('xray-pill unavailable');
+
+    focus(pin);
+    expect(hint().style.display).toBe('none');
+
+    vi.advanceTimersByTime(3000);
+    expect(pin.className).toBe('xray-pin');
+    focus(pin);
+    expect(hint().style.display).toBe('block');
+  });
+
+  it('hides the hint of a second pin by the same account when its lookup starts', async () => {
+    const first = await addPost('hint_same');
+    const second = await addPost('hint_same');
+    enter(second);
+    expect(hint().style.display).toBe('block');
+
+    userClick(first);
+    expect(second.className).toBe('xray-pill loading');
+    expect(hint().style.display).toBe('none');
+    found('hint_same', 'Peru', 'Web App');
+  });
+
+  it('still shows the hint on a normal pin and hides it again when focus leaves', async () => {
+    const pin = await addPost('hint_normal');
+    focus(pin);
+    expect(hint().style.display).toBe('block');
+    pin.dispatchEvent(new FocusEvent('blur'));
+    expect(hint().style.display).toBe('none');
+  });
+});
+
 describe('info card display', () => {
   const originalWidth = window.innerWidth;
   afterEach(() => {
@@ -890,7 +1017,7 @@ describe('info card display', () => {
     const country = await resultPill('card_country', 'Peru', 'Japan App Store');
     country.dispatchEvent(new MouseEvent('mouseenter'));
     expect(rows()).toEqual(['Peru', 'Japan · iOS']);
-    expect(card().querySelectorAll('.xray-hover-value')[1].querySelector('img.flag-img')).not.toBeNull();
+    expect(card().querySelectorAll('.xray-hover-value')[1].querySelector('img.xray-flag')).not.toBeNull();
 
     const web = await resultPill('card_web', 'Peru', 'Web App');
     web.dispatchEvent(new MouseEvent('mouseenter'));
