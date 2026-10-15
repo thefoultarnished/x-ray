@@ -1,6 +1,7 @@
 # X-Ray for Twitter
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue?logo=google-chrome)](https://chrome.google.com/webstore)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.5-orange.svg)](src/manifest.json)
 
 > **Reveal the user location and device info of any Twitter/X user with a single click based on publically available data**
@@ -230,6 +231,12 @@ Contributions are welcome! Feel free to:
 *   Suggest features
 *   Submit pull requests
 *   Improve documentation
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE). The country flag pictures come from [FlagCDN](https://flagcdn.com), which publishes them as public domain.
 
 ---
 
