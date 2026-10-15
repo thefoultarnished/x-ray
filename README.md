@@ -242,7 +242,7 @@ Released under the [MIT License](LICENSE). The country flag pictures come from [
 
 ## <img src="screenshots/icons/heart.svg" width="18" height="18" align="baseline"> Acknowledgments
 
-*   Thank you to [Flagpedia](https://flagpedia.net) and its [FlagCDN](https://flagcdn.com) service for the country flag pictures, now built into the extension
+*   Thank you to [Flagpedia](https://flagpedia.net) and [FlagCDN](https://flagcdn.com) for the country flag pictures
 *   Icons designed with love
 *   Built for the Twitter/X community
 
