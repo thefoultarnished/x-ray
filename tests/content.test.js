@@ -769,6 +769,119 @@ describe('odd data from X', () => {
   });
 });
 
+describe('info card display', () => {
+  const originalWidth = window.innerWidth;
+  afterEach(() => {
+    removePosts();
+    window.innerWidth = originalWidth;
+  });
+
+  const card = () => document.querySelector('.xray-hover-card');
+  const rows = () => [...card().querySelectorAll('.xray-hover-value')].map((el) => el.textContent.trim());
+
+  async function resultPill(handle, location, source, rect) {
+    const pin = await addPost(handle);
+    userClick(pin);
+    found(handle, location, source);
+    if (rect)
+      vi.spyOn(pin, 'getBoundingClientRect').mockReturnValue({ top: 60, bottom: 80, width: 80, height: 20, ...rect });
+    return pin;
+  }
+
+  it('shows just Unknown for the platform when there is no app info, with no stray dot', async () => {
+    const pill = await resultPill('card_noapp', 'Peru', '');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Unknown']);
+    expect(card().textContent).not.toContain('·');
+  });
+
+  it('still shows the store country and platform when there is app info', async () => {
+    const pill = await resultPill('card_app', 'Peru', 'United States App Store');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'United States · iOS']);
+
+    const unnamed = await resultPill('card_app_only', 'Peru', 'Android App');
+    unnamed.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Unknown · Android']);
+  });
+
+  it('names a store region that is not a country, the same in the pill and the info card', async () => {
+    const pill = await resultPill('card_region', 'Europe', 'South Asia App Store');
+    expect(pill.textContent).toContain('South Asia');
+
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Europe', 'South Asia · iOS']);
+    expect(card().querySelectorAll('.xray-hover-value')[1].querySelector('img')).toBeNull();
+  });
+
+  it('names other store regions and keeps the platform from the app text', async () => {
+    const android = await resultPill('card_reg_andr', 'Kenya', 'Latin America Play Store');
+    expect(android.textContent).toContain('Latin America');
+    android.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Kenya', 'Latin America · Android']);
+  });
+
+  it('still shows a country store by its flag and name, and Unknown when no store is named', async () => {
+    const country = await resultPill('card_country', 'Peru', 'Japan App Store');
+    country.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Japan · iOS']);
+    expect(card().querySelectorAll('.xray-hover-value')[1].querySelector('img.flag-img')).not.toBeNull();
+
+    const web = await resultPill('card_web', 'Peru', 'Web App');
+    web.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Unknown · Web']);
+  });
+
+  it('keeps the card inside the window when neither side has enough room', async () => {
+    window.innerWidth = 300;
+    const pill = await resultPill('card_narrow', 'Peru', 'iOS', { left: 100, right: 200 });
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(parseFloat(card().style.left)).toBe(300 - 210 - 8);
+  });
+
+  it('keeps the card off the left edge in a very small window', async () => {
+    window.innerWidth = 200;
+    const pill = await resultPill('card_tiny', 'Peru', 'iOS', { left: 20, right: 100 });
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(parseFloat(card().style.left)).toBe(8);
+  });
+
+  it('keeps the normal side-by-side placement when there is room', async () => {
+    const pill = await resultPill('card_room', 'Peru', 'iOS', { left: 120, right: 200 });
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(card().style.left).toBe('208px');
+    expect(card().classList.contains('pos-left')).toBe(false);
+  });
+
+  it('hides the card when X removes the post it belongs to', async () => {
+    const pill = await resultPill('card_gone', 'Peru', 'iOS');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    await vi.waitFor(() => expect(card().classList.contains('show')).toBe(true));
+
+    pill.closest('article').remove();
+    await vi.waitFor(() => expect(card().classList.contains('show')).toBe(false));
+  });
+
+  it('keeps the card for a pill that is still on the page when other posts go away', async () => {
+    const stays = await resultPill('card_stays', 'Peru', 'iOS');
+    const other = await addPost('card_other');
+    stays.dispatchEvent(new MouseEvent('mouseenter'));
+    await vi.waitFor(() => expect(card().classList.contains('show')).toBe(true));
+
+    other.closest('article').remove();
+    await settle();
+    expect(card().classList.contains('show')).toBe(true);
+  });
+
+  it('does not show the card after the pointer already left', async () => {
+    const pill = await resultPill('card_quick', 'Peru', 'iOS');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    pill.dispatchEvent(new MouseEvent('mouseleave'));
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(card().classList.contains('show')).toBe(false);
+  });
+});
+
 describe('account names that match built-in object names', () => {
   afterEach(removePosts);
 

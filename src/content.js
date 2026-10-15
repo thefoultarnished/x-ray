@@ -166,6 +166,16 @@ if (window === window.top) {
   // Capturing group so split() keeps the platform names between the text parts.
   const PLATFORM_WORDS = /(iPhone|iPad|iOS|App Store|Android|Play Store|Web)/i;
 
+  // What is left of the app text once the platform words are taken out: "South Asia" for "South Asia App Store".
+  function regionText(text) {
+    return text
+      .split(PLATFORM_WORDS)
+      .filter((_, i) => i % 2 === 0)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function platformIcon(word) {
     if (/^(iPhone|iPad|iOS|App Store)$/i.test(word)) return PLATFORM_ICONS.APPLE;
     if (/^(Android|Play Store)$/i.test(word)) return PLATFORM_ICONS.ANDROID;
@@ -609,6 +619,8 @@ if (window === window.top) {
     }
 
     const observer = new MutationObserver((mutations) => {
+      // X removes posts as you scroll; the card must not stay behind for a pill that is gone.
+      if (hoverTarget && !hoverTarget.isConnected) hideHoverCard();
       let shouldProcess = false;
       for (const mutation of mutations) {
         if (mutation.addedNodes.length > 0) {
@@ -653,11 +665,15 @@ if (window === window.top) {
   }
 
   let hoverCard = null;
+  // The pill the card is showing, so the card can go away if X removes that post.
+  let hoverTarget = null;
+  const CARD_MARGIN = 8;
 
   function showHoverCard(btn, location, source) {
     // Made again if the page removed it.
     if (!hoverCard || !hoverCard.isConnected) hoverCard = createHoverCard();
     const card = hoverCard;
+    hoverTarget = btn;
 
     const isAndroid = Boolean(source) && /android|play store/i.test(source);
     if (isAndroid) {
@@ -670,7 +686,9 @@ if (window === window.top) {
     let sourcePlatform = '';
 
     if (source) {
-      store = splitLeadingCountry(sourceText(source));
+      // A store region that is not a country (like "South Asia") is shown by name, as the pill does.
+      const parsed = splitLeadingCountry(sourceText(source));
+      store = { code: parsed.code, name: parsed.name || regionText(parsed.rest) };
 
       if (/iPhone|iPad|iOS|App Store/i.test(source)) {
         sourcePlatform = 'iOS';
@@ -688,7 +706,7 @@ if (window === window.top) {
       createHoverRow(
         'Platform',
         store.code ? createFlagImage(store.code, store.name) : createGlobe(),
-        `${store.name || 'Unknown'} · ${sourcePlatform}`
+        sourcePlatform ? `${store.name || 'Unknown'} · ${sourcePlatform}` : 'Unknown'
       )
     );
 
@@ -702,29 +720,29 @@ if (window === window.top) {
     const spaceRight = window.innerWidth - rect.right;
     const placeOnLeft = spaceRight < cardWidth + 16 && rect.left > cardWidth + 16;
 
-    if (placeOnLeft) {
-      card.classList.add('pos-left');
-      card.style.left = rect.left + scrollX - cardWidth - 8 + 'px';
-    } else {
-      card.classList.remove('pos-left');
-      card.style.left = rect.right + scrollX + 8 + 'px';
-    }
+    // Beside the pill, but never past the window edge, even when neither side has enough room.
+    const idealLeft = placeOnLeft ? rect.left + scrollX - cardWidth - CARD_MARGIN : rect.right + scrollX + CARD_MARGIN;
+    const maxLeft = scrollX + window.innerWidth - cardWidth - CARD_MARGIN;
+    card.classList.toggle('pos-left', placeOnLeft);
+    card.style.left = Math.max(scrollX + CARD_MARGIN, Math.min(maxLeft, idealLeft)) + 'px';
 
     const pillCenterY = rect.top + scrollY + rect.height / 2;
     const idealTop = pillCenterY - cardHeight / 2;
-    const minTop = scrollY + 8;
-    const maxTop = scrollY + window.innerHeight - cardHeight - 8;
+    const minTop = scrollY + CARD_MARGIN;
+    const maxTop = scrollY + window.innerHeight - cardHeight - CARD_MARGIN;
     const cardTop = Math.max(minTop, Math.min(maxTop, idealTop));
     card.style.top = cardTop + 'px';
 
     const arrowOffset = Math.max(12, Math.min(cardHeight - 18, pillCenterY - cardTop - 6));
     card.style.setProperty('--arrow-top', `${arrowOffset}px`);
     requestAnimationFrame(() => {
-      card.classList.add('show');
+      // Skipped if the pointer already left or the post went away within this frame.
+      if (hoverTarget === btn) card.classList.add('show');
     });
   }
 
   function hideHoverCard() {
+    hoverTarget = null;
     if (hoverCard) hoverCard.classList.remove('show');
   }
 
