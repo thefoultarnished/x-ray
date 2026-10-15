@@ -568,6 +568,16 @@ function startUI() {
   liveRegion.setAttribute('role', 'status');
   document.body.appendChild(liveRegion);
 
+  // Leaving the tab or window sends no mouseleave, so a card opened by hover would stay stuck open.
+  const hideHints = () => {
+    hideHoverCard();
+    hideTooltip();
+  };
+  window.addEventListener('blur', hideHints);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) hideHints();
+  });
+
   const POST_SELECTOR = 'article[data-testid="tweet"]';
 
   function addButtons(posts) {

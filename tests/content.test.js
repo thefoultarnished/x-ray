@@ -1141,6 +1141,51 @@ describe('pin hint display', () => {
   });
 });
 
+describe('closing the hint and the card when leaving the tab', () => {
+  afterEach(removePosts);
+
+  const card = () => document.querySelector('.xray-hover-card');
+  const hint = () => document.querySelector('.xray-tooltip');
+  const setHidden = (value) => Object.defineProperty(document, 'hidden', { configurable: true, value });
+
+  async function hoverPill(handle) {
+    userClick(await addPost(handle));
+    found(handle, 'Peru', 'Web App');
+    document.querySelector(`[data-handle="${handle}"]`).dispatchEvent(new MouseEvent('mouseenter'));
+    await vi.waitFor(() => expect(card().classList.contains('show')).toBe(true));
+  }
+
+  it('closes the card when the tab is switched away', async () => {
+    await hoverPill('tab_card');
+    setHidden(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    setHidden(false);
+    expect(card().classList.contains('show')).toBe(false);
+  });
+
+  it('closes the card when the window loses focus', async () => {
+    await hoverPill('blur_card');
+    window.dispatchEvent(new Event('blur'));
+    expect(card().classList.contains('show')).toBe(false);
+  });
+
+  it('closes the pin hint when the tab is switched away', async () => {
+    const pin = await addPost('tab_hint');
+    pin.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(hint().style.display).toBe('block');
+    setHidden(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    setHidden(false);
+    expect(hint().style.display).toBe('none');
+  });
+
+  it('keeps the card when the tab becomes visible again', async () => {
+    await hoverPill('tab_back');
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(card().classList.contains('show')).toBe(true);
+  });
+});
+
 describe('closing the hint and the card with Escape', () => {
   afterEach(removePosts);
 
