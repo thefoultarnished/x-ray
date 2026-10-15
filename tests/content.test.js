@@ -1179,6 +1179,27 @@ describe('closing the hint and the card when leaving the tab', () => {
     expect(hint().style.display).toBe('none');
   });
 
+  it('lets go of a focused pill when the tab is switched away, so coming back does not reopen the card', async () => {
+    userClick(await addPost('tab_focus'));
+    found('tab_focus', 'Peru', 'Web App');
+    const pill = document.querySelector('[data-handle="tab_focus"]');
+    pill.focus();
+    expect(document.activeElement).toBe(pill);
+    setHidden(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    setHidden(false);
+    expect(document.activeElement).not.toBe(pill);
+  });
+
+  it('leaves focus on other elements alone when the tab is switched away', async () => {
+    const input = document.createElement('input');
+    document.body.append(input);
+    input.focus();
+    window.dispatchEvent(new Event('blur'));
+    expect(document.activeElement).toBe(input);
+    input.remove();
+  });
+
   it('keeps the card when the tab becomes visible again', async () => {
     await hoverPill('tab_back');
     document.dispatchEvent(new Event('visibilitychange'));

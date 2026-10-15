@@ -569,7 +569,10 @@ function startUI() {
   document.body.appendChild(liveRegion);
 
   // Leaving the tab or window sends no mouseleave, so a card opened by hover would stay stuck open.
+  // A focused pill is let go too, or coming back would give it focus again and reopen the card.
   const hideHints = () => {
+    const active = document.activeElement;
+    if (active && active.matches('button[data-handle]')) active.blur();
     hideHoverCard();
     hideTooltip();
   };
