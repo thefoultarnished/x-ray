@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Tests run from the project root (npm test).
 const source = readFileSync(join(process.cwd(), 'src', 'inject-parser.js'), 'utf8');
@@ -42,6 +42,18 @@ describe('inject-parser.js', () => {
   it('adds nothing to the top page, which does not need parser.js', () => {
     runIn(window);
     expect(scriptsIn(window)).toEqual([]);
+  });
+
+  it('waits in a frame that has no page at all yet, then adds parser.js once it appears', async () => {
+    const frame = document.createElement('iframe');
+    document.body.append(frame);
+    const win = frame.contentWindow;
+    win.document.documentElement.remove();
+    runIn(win);
+    expect(scriptsIn(win)).toEqual([]);
+
+    win.document.appendChild(win.document.createElement('html'));
+    await vi.waitFor(() => expect(scriptsIn(win)).toEqual(['chrome-extension://test/parser.js']));
   });
 
   it('works in a frame whose page has no head yet, as at the start of loading', () => {

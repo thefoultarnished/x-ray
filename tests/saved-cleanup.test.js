@@ -163,6 +163,38 @@ describe('starting up', () => {
   });
 });
 
+describe('older spellings of an account', () => {
+  it('removes the older capitals from storage and keeps the newest one', async () => {
+    storage.set('loc:SameAcct', { loc: 'Peru', src: 'Web', timestamp: Date.now() - 5 * DAY });
+    storage.set('loc:sameacct', { loc: 'Chile', src: 'Web', timestamp: Date.now() - 1 * DAY });
+    openX();
+    await vi.waitFor(() => expect(storage.has('loc:SameAcct')).toBe(false));
+    expect(storage.get('loc:sameacct').loc).toBe('Chile');
+  });
+
+  it('keeps the newest spelling even when it has capitals', async () => {
+    storage.set('loc:other', { loc: 'Peru', src: 'Web', timestamp: Date.now() - 5 * DAY });
+    storage.set('loc:Other', { loc: 'Chile', src: 'Web', timestamp: Date.now() - 1 * DAY });
+    openX();
+    await vi.waitFor(() => expect(storage.has('loc:other')).toBe(false));
+    expect(storage.get('loc:Other').loc).toBe('Chile');
+  });
+
+  it('keeps different accounts that only look alike', async () => {
+    storage.set('loc:acct_a', result(1));
+    storage.set('loc:acct_b', result(2));
+    storage.set('loc:acct', result(3));
+    openX();
+    await vi.waitFor(() => expect(readAllCount).toBe(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect([...storage.keys()].filter((k) => k.startsWith('loc:')).sort()).toEqual([
+      'loc:acct',
+      'loc:acct_a',
+      'loc:acct_b',
+    ]);
+  });
+});
+
 describe('saving a result', () => {
   it('does not read every saved result again', async () => {
     for (let i = 0; i < 50; i++) storage.set(`loc:acct${i}`, result(1));

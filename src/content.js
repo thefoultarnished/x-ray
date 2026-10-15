@@ -319,11 +319,27 @@ async function loadSavedResults() {
   }
 }
 
-// Drops results older than 90 days and, beyond 10,000, the oldest ones. Other extension data is left alone.
+// Drops results older than 90 days, older spellings of an account saved under different capitals and,
+// beyond 10,000, the oldest ones. Other extension data is left alone.
 // Done once when the page loads, from the list already read, so a save never rereads everything.
 async function pruneSavedResults(store, saved, now) {
   const usable = saved.filter(([, entry]) => isUsable(entry, now)).sort((a, b) => b[1].timestamp - a[1].timestamp);
-  const drop = [...saved.filter(([, entry]) => !isUsable(entry, now)), ...usable.slice(MAX_SAVED_RESULTS)];
+  const newestSpelling = new Set();
+  const kept = [];
+  const olderSpellings = [];
+  for (const item of usable) {
+    const handle = item[0].slice(SAVED_PREFIX.length).toLowerCase();
+    if (newestSpelling.has(handle)) olderSpellings.push(item);
+    else {
+      newestSpelling.add(handle);
+      kept.push(item);
+    }
+  }
+  const drop = [
+    ...saved.filter(([, entry]) => !isUsable(entry, now)),
+    ...olderSpellings,
+    ...kept.slice(MAX_SAVED_RESULTS),
+  ];
   if (drop.length) await store.remove(drop.map(([key]) => key));
 }
 
