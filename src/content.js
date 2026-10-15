@@ -378,17 +378,184 @@ window.addEventListener('message', (event) => {
 
   saveToCache(handle, location, source);
   updateToLocationText(handle, location, source);
-  announce(`@${handle}: ${describeResult(location, source)}`);
+  noteLookupResult(true, handle);
+  if (!autoHandles.has(handle)) announce(`@${handle}: ${describeResult(location, source)}`);
+  autoHandles.delete(handle);
 
   finishLookup();
   setTimeout(processQueue, NEXT_LOOKUP_DELAY_MS);
 });
 
 // Marks the lookup as done, then removes the hidden frame unless more lookups are waiting.
+// ---- Auto reveal: looks up the accounts on screen by itself, one at a time ----
+// Failed lookups in a row before auto reveal pauses; X most likely started limiting us.
+const AUTO_FAILURES_BEFORE_PAUSE = 5;
+const AUTO_PAUSE_MS = 5 * 60 * 1000;
+// Most automatic lookups in line at once, counting the one running.
+const AUTO_QUEUE_MAX = 20;
+let autoReveal = SETTING_DEFAULTS[SETTINGS.AUTO_REVEAL];
+let autoDelayMs = SETTING_DEFAULTS[SETTINGS.AUTO_DELAY_SEC] * 1000;
+let autoTimer = null;
+let autoPausedUntil = 0;
+let lastLookupEnd = 0;
+let failureStreak = 0;
+let pinObserver = null;
+// Pins that are on screen right now.
+const visiblePins = new Set();
+// Accounts that got no answer this page load; auto reveal never asks for them again.
+const unavailableHandles = new Set();
+// Accounts auto reveal asked for, so screen readers are not told about every one.
+const autoHandles = new Set();
+
+async function loadSettings() {
+  try {
+    const store = chrome.runtime?.id ? chrome.storage.sync : null;
+    if (!store) return;
+    applySettings(await store.get(SETTING_DEFAULTS));
+  } catch (e) {
+    console.warn('[X-Ray] Could not read settings:', e);
+  }
+}
+
+function applySettings(raw) {
+  const settings = normalizeSettings(raw);
+  autoReveal = settings[SETTINGS.AUTO_REVEAL];
+  autoDelayMs = settings[SETTINGS.AUTO_DELAY_SEC] * 1000;
+}
+
+function onSettingsChanged(changes, area) {
+  if (area !== 'sync' || !(SETTINGS.AUTO_REVEAL in changes || SETTINGS.AUTO_DELAY_SEC in changes)) return;
+  const current = { [SETTINGS.AUTO_REVEAL]: autoReveal, [SETTINGS.AUTO_DELAY_SEC]: autoDelayMs / 1000 };
+  for (const key of Object.keys(current)) if (key in changes) current[key] = changes[key].newValue;
+  applySettings(current);
+  // A wait planned with the old delay is replaced by one with the new delay.
+  clearTimeout(autoTimer);
+  autoTimer = null;
+  syncAutoReveal();
+}
+
+// Starts or stops watching pins to match the setting.
+function syncAutoReveal() {
+  if (!autoReveal) {
+    clearTimeout(autoTimer);
+    autoTimer = null;
+    pinObserver?.disconnect();
+    pinObserver = null;
+    visiblePins.clear();
+    dropAutoQueued();
+    return;
+  }
+  if (typeof IntersectionObserver === 'undefined') {
+    console.warn('[X-Ray] Auto reveal needs IntersectionObserver, which this browser does not have.');
+    return;
+  }
+  document.querySelectorAll('.xray-pin').forEach(observePin);
+  refreshAuto();
+}
+
+function observePin(btn) {
+  if (!pinObserver) {
+    pinObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visiblePins.add(entry.target);
+        else visiblePins.delete(entry.target);
+      }
+      refreshAuto();
+    });
+  }
+  pinObserver.observe(btn);
+}
+
+// The accounts with a pin on screen that are still to be asked for, nearest the middle of the screen first.
+function autoCandidates() {
+  const middle = window.innerHeight / 2;
+  const distances = new Map();
+  for (const btn of visiblePins) {
+    if (!btn.isConnected || !btn.classList.contains('xray-pin')) continue;
+    const handle = btn.dataset.handle;
+    if (locationMap.has(handle) || unavailableHandles.has(handle) || loadingTextFor(handle)) continue;
+    const rect = btn.getBoundingClientRect();
+    const distance = Math.abs((rect.top + rect.bottom) / 2 - middle);
+    if (distance < (distances.get(handle) ?? Infinity)) distances.set(handle, distance);
+  }
+  return [...distances].sort((a, b) => a[1] - b[1]).map(([handle]) => handle);
+}
+
+const isAutoQueued = (handle) => autoHandles.has(handle) && requestQueueSet.has(handle);
+
+// Puts every pin on screen in line right away, so they all say "Queued..." and are looked up one by one.
+function queueVisibleAuto() {
+  if (!autoReveal || document.hidden || Date.now() < autoPausedUntil) return;
+  // The one being looked up counts too.
+  let room = AUTO_QUEUE_MAX - requestQueue.filter(isAutoQueued).length - (autoHandles.has(busyHandle) ? 1 : 0);
+  for (const handle of autoCandidates()) {
+    if (room-- <= 0) break;
+    queueRequest(handle, { auto: true });
+  }
+}
+
+function refreshAuto() {
+  queueVisibleAuto();
+  scheduleAuto();
+}
+
+// True when an automatic lookup may not start yet: the chosen wait or a pause is running, or the tab is hidden.
+function autoMustWait() {
+  return !autoReveal || document.hidden || Date.now() < Math.max(lastLookupEnd + autoDelayMs, autoPausedUntil);
+}
+
+const isOnScreen = (handle) => [...visiblePins].some((btn) => btn.isConnected && btn.dataset.handle === handle);
+
+// Takes an automatic lookup out of line and gives its pins back.
+function dropAutoQueued(handle) {
+  const handles = handle ? [handle] : requestQueue.filter(isAutoQueued);
+  for (const queued of handles) {
+    const index = requestQueue.indexOf(queued);
+    if (index !== -1) requestQueue.splice(index, 1);
+    requestQueueSet.delete(queued);
+    autoHandles.delete(queued);
+    document.querySelectorAll(`.xray-pill.loading[data-handle="${queued}"]`).forEach(restorePin);
+  }
+}
+
+// One timer at most. It waits out the chosen delay after the last lookup, and any pause.
+function scheduleAuto() {
+  if (!autoReveal || autoTimer || document.hidden) return;
+  const now = Date.now();
+  const wait = Math.max(lastLookupEnd + autoDelayMs - now, autoPausedUntil - now, 0);
+  autoTimer = setTimeout(autoStep, wait);
+}
+
+function autoStep() {
+  autoTimer = null;
+  if (!autoReveal || document.hidden) return;
+  queueVisibleAuto();
+  processQueue();
+}
+
+// Counts answers and failures. Many failures in a row pause auto reveal, since X may be limiting us.
+function noteLookupResult(ok, handle) {
+  if (ok) {
+    failureStreak = 0;
+    return;
+  }
+  unavailableHandles.add(handle);
+  failureStreak++;
+  if (autoReveal && failureStreak >= AUTO_FAILURES_BEFORE_PAUSE) {
+    failureStreak = 0;
+    autoPausedUntil = Date.now() + AUTO_PAUSE_MS;
+    dropAutoQueued();
+    console.warn(`[X-Ray] Auto reveal paused for ${AUTO_PAUSE_MS / 60000} minutes: lookups keep failing.`);
+    announce('Auto reveal paused because lookups keep failing');
+  }
+}
+
 function finishLookup() {
   clearTimeout(lookupTimer);
   busyHandle = null;
   isProcessingQueue = false;
+  lastLookupEnd = Date.now();
+  scheduleAuto();
   if (!scraperFrame) return;
   if (requestQueue.length === 0) {
     scraperFrame.remove();
@@ -451,27 +618,41 @@ function loadingTextFor(handle) {
   return requestQueueSet.has(handle) ? QUEUED_TEXT : null;
 }
 
-function queueRequest(handle) {
+function queueRequest(handle, { auto = false } = {}) {
   if (locationMap.has(handle)) return;
+  if (auto) autoHandles.add(handle);
 
   // A second pin for an account already being looked up joins that lookup instead of starting another.
   const inProgress = loadingTextFor(handle);
-  const isFirst = requestQueue.length === 0 && !isProcessingQueue;
-  const initialText = inProgress ?? (isFirst ? LOADING_TEXT : QUEUED_TEXT);
+  // An automatic lookup waits for its turn, so its pins say "Queued..." until it starts.
+  const isFirst = !isProcessingQueue && requestQueue.every((queued) => autoHandles.has(queued));
+  const initialText = inProgress ?? (isFirst && !auto ? LOADING_TEXT : QUEUED_TEXT);
 
   document.querySelectorAll(`.xray-pin[data-handle="${handle}"]`).forEach((btn) => showLoading(btn, initialText));
 
-  announce(`Looking up @${handle}`);
+  if (!autoHandles.has(handle)) announce(`Looking up @${handle}`);
   if (inProgress) return;
-  requestQueue.push(handle);
+  // A lookup the user asked for goes ahead of the automatic ones.
+  const firstAuto = requestQueue.findIndex((queued) => autoHandles.has(queued));
+  if (auto || firstAuto === -1) requestQueue.push(handle);
+  else requestQueue.splice(firstAuto, 0, handle);
   requestQueueSet.add(handle);
   processQueue();
 }
 
 function processQueue() {
-  if (isProcessingQueue || requestQueue.length === 0) return;
+  if (isProcessingQueue) return;
+  // Automatic lookups whose pins have left the screen are given up before their turn.
+  while (requestQueue.length && isAutoQueued(requestQueue[0]) && !isOnScreen(requestQueue[0])) {
+    dropAutoQueued(requestQueue[0]);
+  }
+  if (requestQueue.length === 0) return;
 
   const handle = requestQueue[0];
+  if (autoHandles.has(handle) && autoMustWait()) {
+    scheduleAuto();
+    return;
+  }
 
   isProcessingQueue = true;
   requestQueue.shift();
@@ -496,7 +677,9 @@ function loadAboutPage(handle) {
   lookupTimer = setTimeout(() => {
     console.warn(`[X-Ray] No location data for @${handle} after ${LOOKUP_TIMEOUT_MS / 1000}s`);
     document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
-    announce(`Not available for @${handle}`);
+    if (!autoHandles.has(handle)) announce(`Not available for @${handle}`);
+    autoHandles.delete(handle);
+    noteLookupResult(false, handle);
     finishLookup();
     processQueue();
   }, LOOKUP_TIMEOUT_MS);
@@ -510,11 +693,15 @@ function showNotAvailable(btn) {
   setTimeout(() => {
     // A late result may have replaced the pill meanwhile; leave that alone.
     if (!btn.isConnected || !btn.classList.contains('unavailable')) return;
-    btn.className = 'xray-pin';
-    btn.setAttribute('aria-label', PIN_LABEL);
-    btn.replaceChildren(createIcon(ICONS.PIN));
-    btn.style.pointerEvents = '';
+    restorePin(btn);
   }, NOT_AVAILABLE_MS);
+}
+
+function restorePin(btn) {
+  btn.className = 'xray-pin';
+  btn.setAttribute('aria-label', PIN_LABEL);
+  btn.replaceChildren(createIcon(ICONS.PIN));
+  btn.style.pointerEvents = '';
 }
 
 let tooltip;
@@ -544,6 +731,7 @@ function startUI() {
   window.addEventListener('blur', hideHints);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) hideHints();
+    else refreshAuto();
   });
 
   const POST_SELECTOR = 'article[data-testid="tweet"]';
@@ -615,6 +803,7 @@ function startUI() {
     if (targetNode.parentNode) {
       targetNode.parentNode.insertBefore(btn, targetNode);
     }
+    if (autoReveal && btn.classList.contains('xray-pin')) observePin(btn);
   }
 
   // Posts that changed since the last check, handled together once per frame.
@@ -680,7 +869,10 @@ function startUI() {
     scheduleCheck();
   }
 
-  if (chrome.runtime?.id) chrome.storage.onChanged.addListener(forgetRemovedResults);
+  if (chrome.runtime?.id) {
+    chrome.storage.onChanged.addListener(forgetRemovedResults);
+    chrome.storage.onChanged.addListener(onSettingsChanged);
+  }
 
   const observer = new MutationObserver((mutations) => {
     // X removes posts as you scroll; the card must not stay behind for a pill that is gone.
@@ -693,6 +885,7 @@ function startUI() {
   observer.observe(document.body, { childList: true, subtree: true });
 
   addButtons(document.querySelectorAll(POST_SELECTOR));
+  syncAutoReveal();
 }
 
 // The pin the hint is showing for, so the hint can go away if X removes that post.
@@ -832,7 +1025,7 @@ function hideHoverCard() {
 }
 
 // Saved results load first, so posts by accounts already looked up never flash a pin.
-loadSavedResults().then(() => {
+Promise.all([loadSavedResults(), loadSettings()]).then(() => {
   if (document.body) startUI();
   else document.addEventListener('DOMContentLoaded', startUI);
 });

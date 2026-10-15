@@ -65,6 +65,7 @@ beforeEach(() => {
     },
   });
   globalThis.SAVED_PREFIX = require('../src/saved-results.js').SAVED_PREFIX;
+  Object.assign(globalThis, require('../src/settings.js'));
   globalThis.FLAG_IMAGES = require('../src/flags.js');
 });
 

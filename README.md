@@ -117,7 +117,7 @@ X-Ray's **click-to-reveal** approach means:
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Keep looked-up locations only in your browser, for 90 days
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Use standard web security practices (XSS prevention, origin validation)
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Show country flags from pictures built into the extension
-*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Respect Twitter/X rate limits with click-to-reveal
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Respect Twitter/X rate limits: lookups happen when you click, or one at a time with a wait you choose if you turn on Auto reveal
 
 **Your privacy is our priority.**
 
@@ -152,9 +152,10 @@ X-Ray's **click-to-reveal** approach means:
 *   **Hover** over the icon to see a "Get Location & App Store" tooltip
 *   **Hover** over location pills to see detailed info (Based in & Platform)
 *   **Saved results** - Locations you looked up appear instantly for 90 days, even after a refresh
+*   **Auto reveal** - Off by default. Turn it on in the X-Ray popup to look up the accounts on screen by itself (they show Queued... and are looked up one by one), with a wait of 2 to 10 seconds between lookups. X may rate limit you if you use this a lot
 *   **Clear cache** - Click the X-Ray icon to see how many records are saved and clear them
 *   **Works everywhere** - Timeline, profiles, replies, search results
-*   **Rate limit friendly** - Click only what you need
+*   **Rate limit friendly** - Click only what you need, or keep Auto reveal on a longer wait
 
 ---
 
@@ -168,7 +169,7 @@ X-Ray's **click-to-reveal** approach means:
 
 ### Permissions Explained
 *   **`declarativeNetRequest`** - Lets the profile's About page load in a hidden frame by removing X's "don't show in a frame" setting for that page only; all of X's other protections stay on
-*   **`storage`** - Keeps the locations you looked up in X-Ray's own storage on your device for 90 days, where X and other websites can't read them
+*   **`storage`** - Keeps the locations you looked up in X-Ray's own storage on your device for 90 days, where X and other websites can't read them, and remembers your Auto reveal settings
 *   **`host_permissions`** - Only works on x.com and twitter.com, no access to other sites
 
 ### How It Works Technically

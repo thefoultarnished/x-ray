@@ -12,11 +12,15 @@
       --border: rgba(255, 255, 255, 0.09);
       --accent: #1d9bf0;
       --accent-soft: rgba(29, 155, 240, 0.14);
+      --accent-soft-hover: rgba(29, 155, 240, 0.26);
+      --accent-soft-border: rgba(29, 155, 240, 0.35);
       --danger-soft: rgba(244, 67, 54, 0.1);
       --danger-soft-border: rgba(244, 67, 54, 0.3);
       --danger-strong: rgba(244, 67, 54, 0.22);
       --danger-strong-border: rgba(244, 67, 54, 0.55);
       --danger-text: #ff9a94;
+      --switch-off: rgba(255, 255, 255, 0.18);
+      --switch-knob: #fff;
       --text: #f2f5f8;
       --text-2: #a9b4c2;
       --text-3: #7d8896;
@@ -84,59 +88,191 @@
       padding: 14px 16px 4px;
     }
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      backdrop-filter: blur(12px);
-    }
-
-    h2 {
-      margin: 0 0 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-2);
-    }
-
-    ol {
-      margin: 0;
-      padding-inline-start: 18px;
-      color: var(--text-2);
-    }
-
-    ol li:not(:last-child) {
-      margin-bottom: 4px;
-    }
-
-    ol li b {
-      color: var(--text);
-      font-weight: 600;
-    }
-
     .note {
-      margin: 10px 2px 0;
+      margin: 0 2px;
       font-size: 11.5px;
       color: var(--text-3);
     }
 
-    .open-x {
-      display: block;
-      width: 100%;
-      margin-top: 12px;
-      min-block-size: 34px;
-      border: 1px solid transparent;
-      border-radius: var(--radius);
-      background: var(--accent);
-      color: #fff;
-      font: inherit;
+    .support {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-inline-start: auto;
+      padding: 4px 10px;
+      border: 1px solid var(--accent-soft-border);
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--text);
+      font-size: 11.5px;
       font-weight: 600;
-      cursor: pointer;
-      transition: filter 0.15s;
+      line-height: 1.3;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
     }
 
-    .open-x:hover {
-      filter: brightness(1.1);
+    .support:hover {
+      background: var(--accent-soft-hover);
+      border-color: var(--accent);
+    }
+
+    .auto {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .auto-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .auto-row + .auto-row {
+      margin-top: 8px;
+    }
+
+    .auto-title {
+      font-weight: 600;
+    }
+
+    .auto-warning {
+      margin: 6px 0 0;
+      font-size: 11.5px;
+      color: var(--text-3);
+    }
+
+    .auto input[type='checkbox'] {
+      appearance: none;
+      position: relative;
+      flex-shrink: 0;
+      inline-size: 42px;
+      block-size: 26px;
+      margin: 0;
+      border-radius: 13px;
+      background: var(--switch-off);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .auto input[type='checkbox']::after {
+      content: '';
+      position: absolute;
+      inset-block-start: 2px;
+      inset-inline-start: 2px;
+      inline-size: 22px;
+      block-size: 22px;
+      border-radius: 50%;
+      background: var(--switch-knob);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s;
+    }
+
+    .auto input[type='checkbox']:checked {
+      background: var(--accent);
+    }
+
+    .auto input[type='checkbox']:checked::after {
+      transform: translateX(16px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .auto input[type='checkbox'],
+      .auto input[type='checkbox']::after {
+        transition: none;
+      }
+    }
+
+    .auto select {
+      padding: 3px 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+    }
+
+    .auto select:disabled,
+    .auto-row.off label {
+      color: var(--text-3);
+    }
+
+    /* Newer browsers let the open list be styled too. Older ones keep the plain select above. */
+    @supports (appearance: base-select) {
+      .auto select,
+      .auto select::picker(select) {
+        appearance: base-select;
+      }
+
+      .auto select {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px 4px 10px;
+        background: var(--surface);
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+
+      .auto select:hover:not(:disabled) {
+        background: var(--surface-hover);
+        border-color: var(--accent);
+      }
+
+      .auto select:disabled {
+        cursor: default;
+        opacity: 0.6;
+      }
+
+      .auto select::picker-icon {
+        color: var(--text-3);
+        transition: rotate 0.2s;
+      }
+
+      .auto select:open::picker-icon {
+        rotate: 180deg;
+      }
+
+      .auto select::picker(select) {
+        margin-block-start: 4px;
+        padding: 4px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      }
+
+      .auto option {
+        padding: 6px 12px;
+        border-radius: var(--radius-sm);
+        color: var(--text-2);
+        cursor: pointer;
+      }
+
+      .auto option:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+      }
+
+      .auto option:checked {
+        background: var(--accent-soft);
+        color: var(--text);
+      }
+
+      .auto option::checkmark {
+        display: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .auto select,
+        .auto select::picker-icon {
+          transition: none;
+        }
+      }
     }
 
     .saved {
@@ -197,22 +333,30 @@
   <header>
     <img class="logo" src="icons/icon48.png" width="24" height="24" alt="" />
     <h1>X-Ray <a href="changelog.html" class="version-tag" id="appVersion" title="What's new">v1.5</a></h1>
+    <a class="support" id="support" href="https://ko-fi.com/thefoultarnished" target="_blank" rel="noopener noreferrer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3c-.8 1 .8 2 0 3"/><path d="M12 3c-.8 1 .8 2 0 3"/></svg>Support
+    </a>
   </header>
 
   <main>
-    <section class="card">
-      <h2>How to use</h2>
-      <ol>
-        <li>Open <b>x.com</b> and scroll as usual.</li>
-        <li>Click the <b>pin icon</b> next to a post to see where that account is based and which app it uses.</li>
-      </ol>
-    </section>
     <p class="note">Uses only the details X already shows on each profile's About page. No tracking, no accounts.</p>
+    <section class="auto" aria-labelledby="autoTitle">
+      <div class="auto-row">
+        <label for="autoReveal" class="auto-title" id="autoTitle">Auto reveal</label>
+        <input type="checkbox" role="switch" id="autoReveal" aria-describedby="autoWarning" />
+      </div>
+      <p class="auto-warning" id="autoWarning">
+        Looks up the accounts on screen by itself, one at a time. X may rate limit you if you use this a lot.
+      </p>
+      <div class="auto-row off" id="autoDelayRow">
+        <label for="autoDelay">Wait between lookups</label>
+        <select id="autoDelay" disabled></select>
+      </div>
+    </section>
     <div class="saved">
       <p class="saved-count" id="savedCount" role="status"></p>
       <button type="button" class="clear-saved" id="clearSaved" disabled>Clear cache</button>
     </div>
-    <button type="button" class="open-x" id="openX">Open X</button>
   </main>
 
   <footer>
@@ -220,6 +364,7 @@
   </footer>
 
   <script src="saved-results.js"></script>
+  <script src="settings.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -37,7 +37,11 @@ const storageArea = {
 beforeAll(() => {
   globalThis.chrome = {
     runtime: { id: 'test' },
-    storage: { local: storageArea, onChanged: { addListener: (fn) => storageListeners.push(fn) } },
+    storage: {
+      local: storageArea,
+      sync: { get: async (defaults) => ({ ...defaults }) },
+      onChanged: { addListener: (fn) => storageListeners.push(fn) },
+    },
   };
   // Node's own localStorage replaces jsdom's and doesn't work without a file, so use a simple one.
   const store = new Map();
@@ -60,6 +64,7 @@ beforeAll(() => {
   );
   // In Chrome flags.js loads right before content.js and shares its scope.
   globalThis.SAVED_PREFIX = require('../src/saved-results.js').SAVED_PREFIX;
+  Object.assign(globalThis, require('../src/settings.js'));
   flagImages = globalThis.FLAG_IMAGES = require('../src/flags.js');
   ({ createFlag, createSourceContent } = require('../src/content.js'));
 });
@@ -1814,5 +1819,389 @@ describe('loading content.js again', () => {
     await vi.waitFor(() => expect(localStorage.getItem('x_location_cache')).toBeNull());
     await settle();
     expect(saved()).not.toHaveProperty('PlantedAcct');
+  });
+});
+
+describe('auto reveal', () => {
+  // The real timer, for things the page does in its own time (the fake clock does not move it).
+  const realSetTimeout = setTimeout;
+  const realWait = (ms) => new Promise((resolve) => realSetTimeout(resolve, ms));
+  const observers = [];
+  class FakeIntersectionObserver {
+    constructor(callback) {
+      this.callback = callback;
+      this.targets = new Set();
+      observers.push(this);
+    }
+    observe(el) {
+      this.targets.add(el);
+    }
+    disconnect() {
+      this.targets.clear();
+    }
+  }
+
+  // Each test gets a clock later than the one before, so times kept from earlier tests are in the past.
+  let clock = Date.now();
+  const startClock = () => {
+    clock += 10_000_000;
+    vi.useFakeTimers();
+    vi.setSystemTime(clock);
+  };
+  const setSetting = (values) =>
+    storageListeners.forEach((fn) =>
+      fn(Object.fromEntries(Object.entries(values).map(([k, newValue]) => [k, { newValue }])), 'sync')
+    );
+  const turnOn = (delaySec = 2) => setSetting({ autoReveal: true, autoDelaySec: delaySec });
+  const setVisible = (el, isIntersecting = true) => observers.at(-1).callback([{ target: el, isIntersecting }]);
+  // Several pins reported by the browser in one go.
+  const setAllVisible = (els) => observers.at(-1).callback(els.map((target) => ({ target, isIntersecting: true })));
+  const frameSrc = () => document.querySelector('iframe')?.getAttribute('src') ?? '';
+  // The account being looked up right now, or '' when none is (a waiting frame is blank).
+  const lookingUp = () => frameSrc().match(/[/]([A-Za-z0-9_]+)[/]about/)?.[1] ?? '';
+  const setHidden = (value) => Object.defineProperty(document, 'hidden', { configurable: true, value });
+  const middleAt = (el, centre) =>
+    vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({ top: centre - 10, bottom: centre + 10 });
+  const spoken = () => document.querySelector('[role="status"]').textContent;
+
+  beforeAll(() => {
+    globalThis.IntersectionObserver = FakeIntersectionObserver;
+  });
+  afterEach(() => {
+    setHidden(false);
+    setSetting({ autoReveal: false });
+    // Lets a lookup that is still running finish, so it cannot get in the way of the next test.
+    const running = frameSrc().match(/\/([A-Za-z0-9_]+)\/about/);
+    if (running) found(running[1], 'Peru', 'Web App');
+    removePosts();
+  });
+
+  it('does nothing while the setting is off', async () => {
+    const before = observers.length;
+    await addPost('auto_off');
+    expect(observers.length).toBe(before);
+    expect(lookingUp()).toBe('');
+  });
+
+  it('looks up a pin that is on screen once it is switched on', async () => {
+    const pin = await addPost('auto_on');
+    startClock();
+    turnOn();
+    setVisible(pin);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(frameSrc()).toContain('/auto_on/about');
+    expect(pin.classList.contains('loading')).toBe(true);
+  });
+
+  it('also watches pins that appear after it was switched on', async () => {
+    startClock();
+    turnOn();
+    const article = newPost('auto_later');
+    await realWait(50);
+    await vi.advanceTimersByTimeAsync(50);
+    const pin = article.querySelector('.xray-pin');
+    setVisible(pin);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(frameSrc()).toContain('/auto_later/about');
+  });
+
+  it('leaves a pin alone while it is not on screen, and while it is only scrolled past', async () => {
+    const away = await addPost('auto_away');
+    const passed = await addPost('auto_passed');
+    startClock();
+    turnOn();
+    setVisible(passed);
+    setVisible(passed, false);
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(lookingUp()).toBe('');
+    expect(away.className).toBe('xray-pin');
+    expect(passed.className).toBe('xray-pin');
+  });
+
+  it('asks for the account nearest the middle of the screen first', async () => {
+    const top = await addPost('auto_top');
+    const middle = await addPost('auto_middle');
+    middleAt(top, 50);
+    middleAt(middle, window.innerHeight / 2 + 20);
+    startClock();
+    turnOn();
+    setAllVisible([top, middle]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(frameSrc()).toContain('/auto_middle/about');
+  });
+
+  it('waits the chosen time after a lookup before the next one', async () => {
+    const first = await addPost('auto_first');
+    const second = await addPost('auto_second');
+    middleAt(first, window.innerHeight / 2);
+    middleAt(second, 300);
+    startClock();
+    turnOn(5);
+    setVisible(first);
+    setVisible(second);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(frameSrc()).toContain('/auto_first/about');
+
+    found('auto_first', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(4900);
+    expect(lookingUp()).toBe('');
+    await vi.advanceTimersByTimeAsync(100);
+    expect(frameSrc()).toContain('/auto_second/about');
+  });
+
+  it('uses a new delay as soon as the setting changes', async () => {
+    const first = await addPost('auto_d1');
+    const second = await addPost('auto_d2');
+    middleAt(first, window.innerHeight / 2);
+    middleAt(second, 300);
+    startClock();
+    turnOn(10);
+    setVisible(first);
+    setVisible(second);
+    await vi.advanceTimersByTimeAsync(0);
+    found('auto_d1', 'Peru', 'Web App');
+    setSetting({ autoDelaySec: 2 });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(frameSrc()).toContain('/auto_d2/about');
+  });
+
+  it('ignores a delay that is not one of the choices', async () => {
+    const first = await addPost('auto_bad1');
+    const second = await addPost('auto_bad2');
+    middleAt(first, window.innerHeight / 2);
+    middleAt(second, 300);
+    startClock();
+    turnOn(2);
+    setVisible(first);
+    setVisible(second);
+    await vi.advanceTimersByTimeAsync(0);
+    found('auto_bad1', 'Peru', 'Web App');
+    setSetting({ autoDelaySec: 1 });
+    await vi.advanceTimersByTimeAsync(4900);
+    expect(lookingUp()).toBe('');
+    await vi.advanceTimersByTimeAsync(100);
+    expect(frameSrc()).toContain('/auto_bad2/about');
+  });
+
+  it('does one lookup for an account that has several pins on screen', async () => {
+    const one = await addPost('auto_twin');
+    const other = document.createElement('article');
+    other.dataset.testid = 'tweet';
+    other.innerHTML =
+      '<div data-testid="User-Name"><a href="/auto_twin">x</a></div><div><div data-testid="caret"></div></div>';
+    document.body.append(other);
+    await vi.waitFor(() => expect(other.querySelector('.xray-pin')).not.toBeNull());
+    const two = other.querySelector('.xray-pin');
+    startClock();
+    turnOn();
+    setVisible(one);
+    setVisible(two);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(one.classList.contains('loading')).toBe(true);
+    expect(two.classList.contains('loading')).toBe(true);
+    found('auto_twin', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(lookingUp()).toBe('');
+    expect(one.classList.contains('xray-pill')).toBe(true);
+    expect(two.classList.contains('xray-pill')).toBe(true);
+  });
+
+  it('never asks again for an account that gave no answer', async () => {
+    const pin = await addPost('auto_silent');
+    startClock();
+    turnOn();
+    setVisible(pin);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(frameSrc()).toContain('/auto_silent/about');
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(pin.textContent).toContain('Not available');
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(pin.className).toBe('xray-pin');
+    expect(lookingUp()).toBe('');
+  });
+
+  it('waits while the tab is hidden and goes on when it is visible again', async () => {
+    const pin = await addPost('auto_hidden');
+    startClock();
+    setHidden(true);
+    turnOn();
+    setVisible(pin);
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(lookingUp()).toBe('');
+
+    setHidden(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(frameSrc()).toContain('/auto_hidden/about');
+  });
+
+  it('stops when it is switched off', async () => {
+    const pin = await addPost('auto_stop');
+    startClock();
+    turnOn();
+    setVisible(pin);
+    setSetting({ autoReveal: false });
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(lookingUp()).toBe('');
+    expect(pin.className).toBe('xray-pin');
+  });
+
+  it('still starts a lookup at once when the user clicks a pin', async () => {
+    const pin = await addPost('auto_manual');
+    startClock();
+    turnOn(10);
+    userClick(pin);
+    expect(frameSrc()).toContain('/auto_manual/about');
+    expect(spoken()).toBe('Looking up @auto_manual');
+    found('auto_manual', 'Peru', 'Web App');
+  });
+
+  it('does not tell screen readers about every automatic lookup', async () => {
+    const pin = await addPost('auto_quiet');
+    startClock();
+    turnOn();
+    const before = spoken();
+    setVisible(pin);
+    await vi.advanceTimersByTimeAsync(0);
+    found('auto_quiet', 'Peru', 'Web App');
+    expect(pin.classList.contains('xray-pill')).toBe(true);
+    expect(spoken()).toBe(before);
+  });
+
+  const labelOf = (pin) => pin.textContent.trim();
+
+  it('marks every pin on screen Queued and looks them up one by one', async () => {
+    const pins = [];
+    for (const name of ['q_near', 'q_mid', 'q_far']) pins.push(await addPost(name));
+    middleAt(pins[0], window.innerHeight / 2);
+    middleAt(pins[1], window.innerHeight / 2 + 100);
+    middleAt(pins[2], window.innerHeight / 2 + 200);
+    startClock();
+    turnOn(3);
+    setAllVisible(pins);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pins.map(labelOf)).toEqual(['Locating...', 'Queued...', 'Queued...']);
+
+    found('q_near', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(2900);
+    expect(labelOf(pins[1])).toBe('Queued...');
+    await vi.advanceTimersByTimeAsync(100);
+    expect(labelOf(pins[1])).toBe('Locating...');
+    expect(lookingUp()).toBe('q_mid');
+    expect(labelOf(pins[2])).toBe('Queued...');
+
+    found('q_mid', 'Chile', 'Web App');
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(lookingUp()).toBe('q_far');
+  });
+
+  it('adds a pin that scrolls into view to the end of the line', async () => {
+    const first = await addPost('q_late_a');
+    const second = await addPost('q_late_b');
+    startClock();
+    turnOn(2);
+    setVisible(first);
+    await vi.advanceTimersByTimeAsync(0);
+    setVisible(second);
+    expect(labelOf(second)).toBe('Queued...');
+  });
+
+  it('gives a queued pin back once it has scrolled out of view before its turn', async () => {
+    const first = await addPost('q_gone_a');
+    const second = await addPost('q_gone_b');
+    middleAt(first, window.innerHeight / 2);
+    middleAt(second, window.innerHeight / 2 + 100);
+    startClock();
+    turnOn(2);
+    setAllVisible([first, second]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(labelOf(second)).toBe('Queued...');
+
+    setVisible(second, false);
+    found('q_gone_a', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(second.className).toBe('xray-pin');
+    expect(lookingUp()).toBe('');
+  });
+
+  it('lets a lookup the user asked for go ahead of the queued ones', async () => {
+    const first = await addPost('q_user_a');
+    const second = await addPost('q_user_b');
+    const manual = await addPost('q_user_c');
+    middleAt(first, window.innerHeight / 2);
+    middleAt(second, window.innerHeight / 2 + 100);
+    startClock();
+    turnOn(10);
+    setAllVisible([first, second]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(lookingUp()).toBe('q_user_a');
+
+    userClick(manual);
+    expect(labelOf(manual)).toBe('Queued...');
+    found('q_user_a', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(600);
+    expect(lookingUp()).toBe('q_user_c');
+    expect(labelOf(second)).toBe('Queued...');
+  });
+
+  it('gives every queued pin back when it is switched off', async () => {
+    const first = await addPost('q_off_a');
+    const second = await addPost('q_off_b');
+    startClock();
+    turnOn(2);
+    setAllVisible([first, second]);
+    await vi.advanceTimersByTimeAsync(0);
+    setSetting({ autoReveal: false });
+    expect(second.className).toBe('xray-pin');
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(second.className).toBe('xray-pin');
+  });
+
+  it('keeps at most 20 lookups in line', async () => {
+    const pins = [];
+    for (let i = 0; i < 25; i++) pins.push(await addPost(`q_many_${i}`));
+    startClock();
+    turnOn(2);
+    setAllVisible(pins);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pins.filter((pin) => pin.classList.contains('loading')).length).toBe(20);
+  });
+
+  it('does not queue anything while the tab is hidden, and queues the visible pins when it is back', async () => {
+    const pin = await addPost('q_hidden');
+    startClock();
+    setHidden(true);
+    turnOn();
+    setVisible(pin);
+    expect(pin.className).toBe('xray-pin');
+    setHidden(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(pin.classList.contains('loading')).toBe(true);
+  });
+
+  it('pauses for five minutes after five lookups in a row get no answer', async () => {
+    const pins = [];
+    for (let i = 1; i <= 7; i++) pins.push(await addPost(`auto_pause_${i}`));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    startClock();
+    turnOn(2);
+    // A good answer first, so earlier tests' failures do not count.
+    setVisible(pins[0]);
+    await vi.advanceTimersByTimeAsync(0);
+    found('auto_pause_1', 'Peru', 'Web App');
+    pins.slice(1).forEach((pin) => setVisible(pin));
+
+    for (let i = 0; i < 5; i++) await vi.advanceTimersByTimeAsync(12000);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Auto reveal paused'));
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(lookingUp()).toBe('');
+
+    // The pause ends five minutes after the fifth failure, which was 60 seconds in.
+    await vi.advanceTimersByTimeAsync(238000);
+    expect(lookingUp()).toBe('');
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(frameSrc()).toContain('/auto_pause_7/about');
+    warn.mockRestore();
   });
 });
