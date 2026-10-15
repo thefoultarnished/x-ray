@@ -263,7 +263,7 @@ if (window === window.top) {
               btn.replaceChildren(...originalContent);
               isCopying = false;
               btn._resetCopyTimer = null;
-            }, 1800);
+            }, COPIED_MS);
           })
           .catch(() => {
             isCopying = false;
@@ -291,6 +291,9 @@ if (window === window.top) {
   const NOT_AVAILABLE_TEXT = 'Not available';
   const LOOKUP_TIMEOUT_MS = 10000;
   const NOT_AVAILABLE_MS = 3000;
+  const COPIED_MS = 1800;
+  // Pause before the next queued lookup starts.
+  const NEXT_LOOKUP_DELAY_MS = 500;
   const SAVED_PREFIX = 'loc:';
   // Where versions up to 1.5 kept results: inside x.com's own storage, readable by X.
   const OLD_CACHE_KEY = 'x_location_cache';
@@ -403,7 +406,7 @@ if (window === window.top) {
     announce(`@${handle}: ${describeResult(location, source)}`);
 
     finishLookup();
-    setTimeout(processQueue, 500);
+    setTimeout(processQueue, NEXT_LOOKUP_DELAY_MS);
   });
 
   // Marks the lookup as done, then removes the hidden frame unless more lookups are waiting.

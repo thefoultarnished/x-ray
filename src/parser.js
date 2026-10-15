@@ -1,14 +1,8 @@
 (function () {
   const XHR = XMLHttpRequest.prototype;
-  const open = XHR.open;
   const send = XHR.send;
 
   if (window !== window.top) {
-    XHR.open = function (method, url) {
-      this._url = url;
-      return open.apply(this, arguments);
-    };
-
     XHR.send = function () {
       this.addEventListener('load', function () {
         const data = readJson(this);
