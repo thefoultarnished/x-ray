@@ -804,6 +804,9 @@ describe('checking posts as the page changes', () => {
   it('does not recheck older posts when something else on the page changes', async () => {
     const old = newPost('old_post');
     await vi.waitFor(() => expect(pinsIn(old)).toBe(1));
+    // The pin itself is a change in the post, so let that last check finish before removing it.
+    await nextFrame();
+    await nextFrame();
     old.querySelector('button[data-handle]').remove();
 
     for (let i = 0; i < 20; i++) document.body.append(document.createElement('div'));
@@ -831,6 +834,168 @@ describe('checking posts as the page changes', () => {
     await nextFrame();
     await nextFrame();
     expect(pinsIn(article)).toBe(0);
+  });
+});
+
+describe('accounts already being looked up', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    removePosts();
+  });
+
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+  const state = (el) => ({ cls: el.className, text: el.textContent.trim() });
+
+  // How many times the hidden frame was sent to this account's page.
+  function watchLookups() {
+    const loaded = [];
+    const set = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src').set;
+    vi.spyOn(HTMLIFrameElement.prototype, 'src', 'set').mockImplementation(function (url) {
+      loaded.push(url);
+      return set.call(this, url);
+    });
+    return (handle) => loaded.filter((url) => url.endsWith(`/${handle}/about`)).length;
+  }
+
+  it('shows Locating... on a post that appears while its account is being looked up, then the result', async () => {
+    const lookups = watchLookups();
+    const first = await addPost('join_first');
+    userClick(first);
+
+    const later = newPost('join_first');
+    await vi.waitFor(() => expect(later.querySelector('button')).not.toBeNull());
+    const joined = later.querySelector('button');
+    expect(state(joined)).toEqual({ cls: 'xray-pill loading', text: 'Locating...' });
+
+    found('join_first', 'Peru', 'Web App');
+    expect(joined.textContent).toContain('Peru');
+    expect(first.textContent).toContain('Peru');
+    expect(lookups('join_first')).toBe(1);
+  });
+
+  it('shows Queued... on a post that appears while its account is waiting its turn', async () => {
+    const running = await addPost('join_run');
+    const waiting = await addPost('join_wait');
+    userClick(running);
+    userClick(waiting);
+    expect(waiting.textContent.trim()).toBe('Queued...');
+
+    const later = newPost('join_wait');
+    await vi.waitFor(() => expect(later.querySelector('button')).not.toBeNull());
+    expect(later.querySelector('button').textContent.trim()).toBe('Queued...');
+
+    vi.useFakeTimers();
+    found('join_run', 'Peru', 'Web App');
+    vi.advanceTimersByTime(500);
+    expect(later.querySelector('button').textContent.trim()).toBe('Locating...');
+    found('join_wait', 'Chile', 'Web App');
+    expect(later.querySelector('button').textContent).toContain('Chile');
+  });
+
+  it('does not start a second lookup when a pin that came back is clicked during a new lookup of the same account', async () => {
+    const lookups = watchLookups();
+    const old = await addPost('join_again');
+    vi.useFakeTimers();
+    userClick(old);
+    vi.advanceTimersByTime(10000);
+    expect(old.className).toBe('xray-pill unavailable');
+
+    // A new post by the same account starts a fresh lookup while the old pin is still resting.
+    const fresh = newPost('join_again');
+    await Promise.resolve();
+    vi.advanceTimersByTime(20);
+    const freshPin = fresh.querySelector('button');
+    userClick(freshPin);
+    expect(lookups('join_again')).toBe(2);
+
+    vi.advanceTimersByTime(3000);
+    expect(old.className).toBe('xray-pin');
+    userClick(old);
+    expect(state(old)).toEqual({ cls: 'xray-pill loading', text: 'Locating...' });
+    expect(lookups('join_again')).toBe(2);
+
+    found('join_again', 'Peru', 'Web App');
+    expect(old.textContent).toContain('Peru');
+    expect(freshPin.textContent).toContain('Peru');
+  });
+
+  it('still looks up different accounts one at a time, in order', async () => {
+    const lookups = watchLookups();
+    const a = await addPost('order_a');
+    const b = await addPost('order_b');
+    userClick(a);
+    userClick(b);
+    expect(lookups('order_a')).toBe(1);
+    expect(lookups('order_b')).toBe(0);
+
+    vi.useFakeTimers();
+    found('order_a', 'Peru', 'Web App');
+    vi.advanceTimersByTime(500);
+    expect(lookups('order_b')).toBe(1);
+    found('order_b', 'Chile', 'Web App');
+  });
+
+  it('serves an account that already has a result straight from the saved result', async () => {
+    const lookups = watchLookups();
+    const first = await addPost('saved_join');
+    userClick(first);
+    found('saved_join', 'Peru', 'Web App');
+
+    const again = newPost('saved_join');
+    await nextFrame();
+    await vi.waitFor(() => expect(again.querySelector('button')?.className).toBe('xray-pill'));
+    expect(again.querySelector('button').textContent).toContain('Peru');
+    expect(lookups('saved_join')).toBe(1);
+  });
+});
+
+describe('links that are not account names', () => {
+  afterEach(removePosts);
+
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+
+  // Sets the link with setAttribute, so names with quotes or slashes reach the extension as they are.
+  function postWithLink(href) {
+    const article = document.createElement('article');
+    article.dataset.testid = 'tweet';
+    article.innerHTML = '<div data-testid="User-Name"><a>name</a></div><div><div data-testid="caret"></div></div>';
+    article.querySelector('a').setAttribute('href', href);
+    document.body.append(article);
+    return article;
+  }
+
+  it.each(['/some_user', '/A1', '/a', '/abcdefghijklmno', '/User_Name_9'])('gives %s a pin', async (href) => {
+    const article = postWithLink(href);
+    await vi.waitFor(() => expect(article.querySelectorAll('button')).toHaveLength(1));
+    expect(article.querySelector('button').dataset.handle).toBe(href.slice(1));
+  });
+
+  it.each([
+    '/someone/status/123',
+    '/someone/',
+    '/some one',
+    '/a"b',
+    '/abcdefghijklmnop',
+    '/home?x=1',
+    '/#top',
+    '/i/premium',
+    '/',
+    '',
+  ])('gives no pin to the link "%s", and does not fail', async (href) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const article = postWithLink(href);
+    await nextFrame();
+    await nextFrame();
+    expect(article.querySelectorAll('button')).toHaveLength(0);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('still gives the next post its pin after a post with an odd link', async () => {
+    const odd = postWithLink('/x/status/1');
+    const fine = postWithLink('/fine_acct');
+    await vi.waitFor(() => expect(fine.querySelectorAll('button')).toHaveLength(1));
+    expect(odd.querySelectorAll('button')).toHaveLength(0);
   });
 });
 

@@ -288,6 +288,7 @@ if (window === window.top) {
   let scraperFrame = null;
   let busyHandle = null;
   const LOADING_TEXT = 'Locating...';
+  const QUEUED_TEXT = 'Queued...';
   const NOT_AVAILABLE_TEXT = 'Not available';
   const LOOKUP_TIMEOUT_MS = 10000;
   const NOT_AVAILABLE_MS = 3000;
@@ -451,36 +452,47 @@ if (window === window.top) {
   const requestQueueSet = new Set();
   let isProcessingQueue = false;
 
+  // Turns a pin into a pill that says it is waiting for a result.
+  function showLoading(btn, text) {
+    btn.style.transition = 'none';
+    btn.innerHTML = '';
+    btn.className = 'xray-pill loading';
+    btn.setAttribute('aria-label', text);
+    btn.style.pointerEvents = 'none';
+    btn.offsetHeight;
+    btn.style.transition = '';
+
+    const globeIcon = document.createElement('span');
+    globeIcon.className = 'xray-globe';
+    globeIcon.innerHTML = ICONS.GLOBE;
+
+    const loadingText = document.createElement('span');
+    loadingText.className = 'loading-text';
+    loadingText.textContent = text;
+    loadingText.setAttribute('data-text', text);
+
+    btn.appendChild(globeIcon);
+    btn.appendChild(loadingText);
+  }
+
+  // What a pin for this account should say right now, or null when no lookup for it is running or waiting.
+  function loadingTextFor(handle) {
+    if (busyHandle === handle) return LOADING_TEXT;
+    return requestQueueSet.has(handle) ? QUEUED_TEXT : null;
+  }
+
   function queueRequest(handle) {
     if (locationMap.has(handle)) return;
-    if (requestQueueSet.has(handle)) return;
 
+    // A second pin for an account already being looked up joins that lookup instead of starting another.
+    const inProgress = loadingTextFor(handle);
     const isFirst = requestQueue.length === 0 && !isProcessingQueue;
-    const initialText = isFirst ? LOADING_TEXT : 'Queued...';
+    const initialText = inProgress ?? (isFirst ? LOADING_TEXT : QUEUED_TEXT);
 
-    document.querySelectorAll(`.xray-pin[data-handle="${handle}"]`).forEach((btn) => {
-      btn.style.transition = 'none';
-      btn.innerHTML = '';
-      btn.className = 'xray-pill loading';
-      btn.setAttribute('aria-label', initialText);
-      btn.style.pointerEvents = 'none';
-      btn.offsetHeight;
-      btn.style.transition = '';
-
-      const globeIcon = document.createElement('span');
-      globeIcon.className = 'xray-globe';
-      globeIcon.innerHTML = ICONS.GLOBE;
-
-      const loadingText = document.createElement('span');
-      loadingText.className = 'loading-text';
-      loadingText.textContent = initialText;
-      loadingText.setAttribute('data-text', initialText);
-
-      btn.appendChild(globeIcon);
-      btn.appendChild(loadingText);
-    });
+    document.querySelectorAll(`.xray-pin[data-handle="${handle}"]`).forEach((btn) => showLoading(btn, initialText));
 
     announce(`Looking up @${handle}`);
+    if (inProgress) return;
     requestQueue.push(handle);
     requestQueueSet.add(handle);
     processQueue();
@@ -571,6 +583,8 @@ if (window === window.top) {
       const userLink = article.querySelector('[data-testid="User-Name"] a[href^="/"]');
       if (!userLink) return;
       const handle = userLink.getAttribute('href').replace('/', '');
+      // Links like "/name/status/1" are not profiles; a pin there could never finish.
+      if (!HANDLE_PATTERN.test(handle)) return;
 
       const caret = article.querySelector('[data-testid="caret"]');
       const more = article.querySelector('div[aria-label="More"]');
@@ -599,6 +613,10 @@ if (window === window.top) {
           // Enter and Space still reach a pill that is looking up; only a pin may start a lookup.
           if (btn.classList.contains('xray-pin')) queueRequest(handle);
         };
+
+        // A post that appears while its account is being looked up joins that lookup.
+        const waiting = loadingTextFor(handle);
+        if (waiting) showLoading(btn, waiting);
 
         // These stay attached while the pin is a loading pill, which must not show the pin's hint.
         btn.onmouseenter = btn.onfocus = () => {
