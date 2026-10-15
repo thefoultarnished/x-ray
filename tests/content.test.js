@@ -2106,8 +2106,9 @@ describe('auto reveal', () => {
     expect(labelOf(second)).toBe('Queued...');
   });
 
-  it('gives a queued pin back once it has scrolled out of view before its turn', async () => {
+  it('gives a queued pin back once its post is neither on screen nor next to it', async () => {
     const first = await addPost('q_gone_a');
+    await addPost('q_gone_x');
     const second = await addPost('q_gone_b');
     middleAt(first, window.innerHeight / 2);
     middleAt(second, window.innerHeight / 2 + 100);
@@ -2121,12 +2122,13 @@ describe('auto reveal', () => {
     found('q_gone_a', 'Peru', 'Web App');
     await vi.advanceTimersByTimeAsync(5000);
     expect(second.className).toBe('xray-pin');
-    expect(lookingUp()).toBe('');
+    expect(lookingUp()).toBe('q_gone_x');
   });
 
   it('lets a lookup the user asked for go ahead of the queued ones', async () => {
     const first = await addPost('q_user_a');
     const second = await addPost('q_user_b');
+    await addPost('q_user_x');
     const manual = await addPost('q_user_c');
     middleAt(first, window.innerHeight / 2);
     middleAt(second, window.innerHeight / 2 + 100);
@@ -2177,6 +2179,99 @@ describe('auto reveal', () => {
     setHidden(false);
     document.dispatchEvent(new Event('visibilitychange'));
     expect(pin.classList.contains('loading')).toBe(true);
+  });
+
+  async function resolved(handle) {
+    const pin = await addPost(handle);
+    userClick(pin);
+    found(handle, 'Peru', 'Web App');
+    return pin;
+  }
+
+  async function postsOf(...names) {
+    const pins = [];
+    for (const name of names) pins.push(await addPost(name));
+    return pins;
+  }
+
+  it('also queues the post just below and just above the ones on screen', async () => {
+    const [p1, p2, p3, p4, p5] = await postsOf('nb_1', 'nb_2', 'nb_3', 'nb_4', 'nb_5');
+    startClock();
+    turnOn(2);
+    setVisible(p3);
+    await vi.advanceTimersByTimeAsync(0);
+    expect([p1, p2, p3, p4, p5].map(labelOf)).toEqual(['', 'Queued...', 'Locating...', 'Queued...', '']);
+    expect(p1.className).toBe('xray-pin');
+    expect(p5.className).toBe('xray-pin');
+  });
+
+  it('looks up the post below before the one above, after the visible ones', async () => {
+    const [, p2, p3, p4] = await postsOf('nbo_1', 'nbo_2', 'nbo_3', 'nbo_4', 'nbo_5');
+    startClock();
+    turnOn(2);
+    setVisible(p3);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(lookingUp()).toBe('nbo_3');
+    found('nbo_3', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(lookingUp()).toBe('nbo_4');
+    found('nbo_4', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(lookingUp()).toBe('nbo_2');
+    expect([p2, p3, p4].map((pin) => pin.className)).toEqual(['xray-pill loading', 'xray-pill', 'xray-pill']);
+  });
+
+  it('stops after one post each way, even when those lookups have finished', async () => {
+    const pins = await postsOf('nbs_1', 'nbs_2', 'nbs_3', 'nbs_4', 'nbs_5');
+    startClock();
+    turnOn(2);
+    setVisible(pins[2]);
+    await vi.advanceTimersByTimeAsync(0);
+    for (const name of ['nbs_3', 'nbs_4', 'nbs_2']) {
+      expect(lookingUp()).toBe(name);
+      found(name, 'Peru', 'Web App');
+      await vi.advanceTimersByTimeAsync(2000);
+    }
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(lookingUp()).toBe('');
+    expect(pins[0].className).toBe('xray-pin');
+    expect(pins[4].className).toBe('xray-pin');
+  });
+
+  it('does nothing extra for a next post whose account already has a result', async () => {
+    const visible = await addPost('nbk_vis');
+    await resolved('nbk_known');
+    const far = await addPost('nbk_far');
+    startClock();
+    turnOn(2);
+    setVisible(visible);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(lookingUp()).toBe('nbk_vis');
+    found('nbk_vis', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(lookingUp()).toBe('');
+    expect(far.className).toBe('xray-pin');
+  });
+
+  it('counts a post that already has a result as on screen, so the range is exact', async () => {
+    const above = await addPost('nbr_above');
+    const known = await resolved('nbr_known');
+    const below = await addPost('nbr_below');
+    startClock();
+    turnOn(2);
+    setVisible(known);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(above.classList.contains('loading')).toBe(true);
+    expect(below.classList.contains('loading')).toBe(true);
+  });
+
+  it('queues nothing next to a post when no post is on screen', async () => {
+    const pins = await postsOf('nbn_1', 'nbn_2', 'nbn_3');
+    startClock();
+    turnOn(2);
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(lookingUp()).toBe('');
+    expect(pins.map((pin) => pin.className)).toEqual(['xray-pin', 'xray-pin', 'xray-pin']);
   });
 
   it('pauses for five minutes after five lookups in a row get no answer', async () => {

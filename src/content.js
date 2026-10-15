@@ -449,7 +449,7 @@ function syncAutoReveal() {
     console.warn('[X-Ray] Auto reveal needs IntersectionObserver, which this browser does not have.');
     return;
   }
-  document.querySelectorAll('.xray-pin').forEach(observePin);
+  document.querySelectorAll('.xray-pin, .xray-pill').forEach(observePin);
   refreshAuto();
 }
 
@@ -466,24 +466,40 @@ function observePin(btn) {
   pinObserver.observe(btn);
 }
 
-// The accounts with a pin on screen that are still to be asked for, nearest the middle of the screen first.
+// True when nothing stops this account from being asked for.
+const isFreeToAsk = (handle) => !locationMap.has(handle) && !unavailableHandles.has(handle) && !loadingTextFor(handle);
+
+// The post just above and the one just below the posts on screen, so their result is ready by the time you
+// scroll to them. Only the next post counts, never further, so lookups cannot creep down the feed.
+function neighbourButtons() {
+  const all = [...document.querySelectorAll('.xray-pin, .xray-pill')];
+  const seen = all.flatMap((btn, index) => (visiblePins.has(btn) ? [index] : []));
+  if (seen.length === 0) return [];
+  return [all[seen.at(-1) + 1], all[seen[0] - 1]].filter(Boolean);
+}
+
+// The accounts still to be asked for: the pins on screen, nearest the middle first, then the neighbours.
 function autoCandidates() {
   const middle = window.innerHeight / 2;
   const distances = new Map();
   for (const btn of visiblePins) {
     if (!btn.isConnected || !btn.classList.contains('xray-pin')) continue;
     const handle = btn.dataset.handle;
-    if (locationMap.has(handle) || unavailableHandles.has(handle) || loadingTextFor(handle)) continue;
+    if (!isFreeToAsk(handle)) continue;
     const rect = btn.getBoundingClientRect();
     const distance = Math.abs((rect.top + rect.bottom) / 2 - middle);
     if (distance < (distances.get(handle) ?? Infinity)) distances.set(handle, distance);
   }
-  return [...distances].sort((a, b) => a[1] - b[1]).map(([handle]) => handle);
+  const onScreen = [...distances].sort((a, b) => a[1] - b[1]).map(([handle]) => handle);
+  const neighbours = neighbourButtons()
+    .filter((btn) => btn.classList.contains('xray-pin') && isFreeToAsk(btn.dataset.handle))
+    .map((btn) => btn.dataset.handle);
+  return [...new Set([...onScreen, ...neighbours])];
 }
 
 const isAutoQueued = (handle) => autoHandles.has(handle) && requestQueueSet.has(handle);
 
-// Puts every pin on screen in line right away, so they all say "Queued..." and are looked up one by one.
+// Puts every pin on screen, and the next post each way, in line right away, so they all say "Queued..." and are looked up one by one.
 function queueVisibleAuto() {
   if (!autoReveal || document.hidden || Date.now() < autoPausedUntil) return;
   // The one being looked up counts too.
@@ -504,7 +520,9 @@ function autoMustWait() {
   return !autoReveal || document.hidden || Date.now() < Math.max(lastLookupEnd + autoDelayMs, autoPausedUntil);
 }
 
-const isOnScreen = (handle) => [...visiblePins].some((btn) => btn.isConnected && btn.dataset.handle === handle);
+// An account is still wanted while its post is on screen or is the next one above or below.
+const isWanted = (handle) =>
+  [...visiblePins, ...neighbourButtons()].some((btn) => btn.isConnected && btn.dataset.handle === handle);
 
 // Takes an automatic lookup out of line and gives its pins back.
 function dropAutoQueued(handle) {
@@ -642,8 +660,8 @@ function queueRequest(handle, { auto = false } = {}) {
 
 function processQueue() {
   if (isProcessingQueue) return;
-  // Automatic lookups whose pins have left the screen are given up before their turn.
-  while (requestQueue.length && isAutoQueued(requestQueue[0]) && !isOnScreen(requestQueue[0])) {
+  // Automatic lookups whose posts are no longer on screen or next to it are given up before their turn.
+  while (requestQueue.length && isAutoQueued(requestQueue[0]) && !isWanted(requestQueue[0])) {
     dropAutoQueued(requestQueue[0]);
   }
   if (requestQueue.length === 0) return;
@@ -803,7 +821,7 @@ function startUI() {
     if (targetNode.parentNode) {
       targetNode.parentNode.insertBefore(btn, targetNode);
     }
-    if (autoReveal && btn.classList.contains('xray-pin')) observePin(btn);
+    if (autoReveal) observePin(btn);
   }
 
   // Posts that changed since the last check, handled together once per frame.

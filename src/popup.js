@@ -1,5 +1,7 @@
 const LINKS = {
   support: 'https://ko-fi.com/thefoultarnished',
+  // Bundled page, opened in a tab so the click doesn't navigate the popup itself.
+  whatsNew: chrome.runtime.getURL('changelog.html'),
 };
 
 for (const [id, url] of Object.entries(LINKS)) {

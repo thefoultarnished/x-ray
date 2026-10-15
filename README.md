@@ -152,7 +152,7 @@ X-Ray's **click-to-reveal** approach means:
 *   **Hover** over the icon to see a "Get Location & App Store" tooltip
 *   **Hover** over location pills to see detailed info (Based in & Platform)
 *   **Saved results** - Locations you looked up appear instantly for 90 days, even after a refresh
-*   **Auto reveal** - Off by default. Turn it on in the X-Ray popup to look up the accounts on screen by itself (they show Queued... and are looked up one by one), with a wait of 2 to 10 seconds between lookups. X may rate limit you if you use this a lot
+*   **Auto reveal** - Off by default. Turn it on in the X-Ray popup to look up the accounts on screen by itself (they show Queued... and are looked up one by one, plus the post just above and below the screen), with a wait of 2 to 10 seconds between lookups. X may rate limit you if you use this a lot
 *   **Clear cache** - Click the X-Ray icon to see how many records are saved and clear them
 *   **Works everywhere** - Timeline, profiles, replies, search results
 *   **Rate limit friendly** - Click only what you need, or keep Auto reveal on a longer wait

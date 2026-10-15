@@ -296,7 +296,7 @@ describe('the support button and links', () => {
     expect(title.textContent.trim()).toBe('X-Ray');
     const version = document.getElementById('appVersion');
     expect(version.textContent).toBe('v9.9');
-    expect(document.querySelector('header').lastElementChild).toBe(version);
+    expect(document.querySelector('header').lastElementChild.contains(version)).toBe(true);
     expect(title.contains(version)).toBe(false);
     const tagline = document.querySelector('header .tagline');
     expect(tagline.textContent).toBe('for Twitter (X)');
@@ -337,11 +337,39 @@ describe('the popup layout', () => {
     expect(version.closest('a')).toBeNull();
   });
 
-  it("has no What's New link and no text about it", async () => {
+  it("puts a What's New link right below the version number", async () => {
     await openPopup({});
-    expect(document.getElementById('whatsNew')).toBeNull();
-    expect(document.body.textContent).not.toContain("What's New");
-    expect(document.querySelector('a[href="changelog.html"]')).toBeNull();
+    const version = document.getElementById('appVersion');
+    const link = document.getElementById('whatsNew');
+    expect(link.tagName).toBe('A');
+    expect(link.textContent).toBe("What's New");
+    expect(link.getAttribute('href')).toBe('changelog.html');
+    expect(version.nextElementSibling).toBe(link);
+    expect(version.parentElement).toBe(link.parentElement);
+    expect(document.querySelector('header').contains(link)).toBe(true);
+  });
+
+  it("opens the changelog from What's New and closes the popup", async () => {
+    await openPopup({});
+    const created = [];
+    chrome.tabs.create = async (tab) => created.push(tab);
+    document.getElementById('whatsNew').click();
+    await flush();
+    expect(created).toEqual([{ url: 'changelog.html' }]);
+    expect(window.close).toHaveBeenCalled();
+  });
+
+  it("warns and stays open when What's New cannot open the changelog", async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await openPopup({});
+    chrome.tabs.create = async () => {
+      throw new Error('blocked');
+    };
+    document.getElementById('whatsNew').click();
+    await flush();
+    expect(warn).toHaveBeenCalled();
+    expect(window.close).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('gives the wait choice and clear cache a card each, like Auto reveal', async () => {

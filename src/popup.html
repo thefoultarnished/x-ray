@@ -34,7 +34,7 @@
     }
 
     body {
-      width: 300px;
+      width: 340px;
       margin: 0;
       background: radial-gradient(120% 80% at 0% 0%, var(--accent-soft), transparent 60%), var(--bg);
       color: var(--text);
@@ -83,7 +83,25 @@
       background: var(--surface);
       border: 1px solid var(--border);
       line-height: 1.2;
+    }
+
+    .version {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
       margin-inline-start: auto;
+    }
+
+    .whats-new {
+      font-size: 10.5px;
+      line-height: 1.2;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .whats-new:hover {
+      text-decoration: underline;
     }
 
     .support-row {
@@ -333,7 +351,10 @@
       <h1>X-Ray</h1>
       <p class="tagline">for Twitter (X)</p>
     </div>
-    <span class="version-tag" id="appVersion">v1.5</span>
+    <div class="version">
+      <span class="version-tag" id="appVersion">v1.5</span>
+      <a class="whats-new" id="whatsNew" href="changelog.html">What's New</a>
+    </div>
   </header>
 
   <main>
