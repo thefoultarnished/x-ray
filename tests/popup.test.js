@@ -270,14 +270,21 @@ describe('the support button and links', () => {
     expect(document.getElementById('support').getAttribute('rel')).toContain('noopener');
   });
 
-  it('asks about supporting development above the footer, with the button next to it', async () => {
+  it('puts the support button on the same line as the not affiliated note, in the footer', async () => {
     await openPopup({});
-    const row = document.querySelector('.support-row');
-    expect(row.firstElementChild.textContent).toBe('Want to support development?');
-    expect(row.lastElementChild).toBe(document.getElementById('support'));
     const footer = document.querySelector('footer');
-    expect(row.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(row.nextElementSibling).toBe(footer);
+    expect(footer.firstElementChild.textContent).toBe('Not affiliated with X');
+    expect(footer.lastElementChild).toBe(document.getElementById('support'));
+    expect(footer.children.length).toBe(2);
+    expect(document.querySelector('.support-row')).toBeNull();
+  });
+
+  it('keeps the support question as a hover hint instead of showing it', async () => {
+    await openPopup({});
+    const button = document.getElementById('support');
+    expect(button.getAttribute('title')).toBe('Want to support development?');
+    expect(document.body.textContent).not.toContain('Want to support development?');
+    expect(button.textContent.trim()).toBe('Support');
   });
 
   it('shows a drawn coffee cup icon in the button, with no emoji', async () => {
@@ -425,6 +432,6 @@ describe('the popup layout', () => {
 
   it('shows the footer text', async () => {
     await openPopup({});
-    expect(document.querySelector('footer').textContent.trim()).toBe('Not affiliated with X');
+    expect(document.getElementById('footerNote').textContent).toBe('Not affiliated with X');
   });
 });
