@@ -561,8 +561,10 @@ if (window === window.top) {
     liveRegion.setAttribute('role', 'status');
     document.body.appendChild(liveRegion);
 
-    function processTweets() {
-      document.querySelectorAll('article[data-testid="tweet"]').forEach((article) => {
+    const POST_SELECTOR = 'article[data-testid="tweet"]';
+
+    function addButtons(posts) {
+      posts.forEach((article) => {
         // One broken post must not stop the others from getting their pin.
         try {
           addLocationButton(article);
@@ -618,22 +620,38 @@ if (window === window.top) {
       }
     }
 
+    // Posts that changed since the last check, handled together once per frame.
+    const changedPosts = new Set();
+    let checkScheduled = false;
+
+    function checkChangedPosts() {
+      checkScheduled = false;
+      const posts = [...changedPosts].filter((post) => post.isConnected);
+      changedPosts.clear();
+      addButtons(posts);
+    }
+
+    // A new post, or new content inside one (X fills in a post's menu button after the post appears).
+    function collectChangedPosts(node) {
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const post = node.closest(POST_SELECTOR);
+      if (post) changedPosts.add(post);
+      node.querySelectorAll(POST_SELECTOR).forEach((inner) => changedPosts.add(inner));
+    }
+
     const observer = new MutationObserver((mutations) => {
       // X removes posts as you scroll; the card must not stay behind for a pill that is gone.
       if (hoverTarget && !hoverTarget.isConnected) hideHoverCard();
-      let shouldProcess = false;
-      for (const mutation of mutations) {
-        if (mutation.addedNodes.length > 0) {
-          shouldProcess = true;
-          break;
-        }
+      for (const mutation of mutations) mutation.addedNodes.forEach(collectChangedPosts);
+      if (changedPosts.size && !checkScheduled) {
+        checkScheduled = true;
+        requestAnimationFrame(checkChangedPosts);
       }
-      if (shouldProcess) processTweets();
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
 
-    processTweets();
+    addButtons(document.querySelectorAll(POST_SELECTOR));
   }
 
   function showTooltip(el, html) {

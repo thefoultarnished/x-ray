@@ -170,11 +170,12 @@
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
-  animation: rotateBorder 3s linear infinite;
 }
 
+/* Spins only while it can be seen, so idle pills cost nothing. */
 .xray-pill:hover::before {
   opacity: 1;
+  animation: rotateBorder 3s linear infinite;
 }
 
 .xray-pill:hover {
@@ -495,4 +496,19 @@
 .xray-hover-card.android-device.pos-left::before {
   border-top-color: rgba(52, 168, 83, 0.3);
   border-right-color: rgba(52, 168, 83, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xray-pill,
+  .xray-pill::before,
+  .xray-pill:hover,
+  .xray-pill:hover::before,
+  .xray-pill.copied,
+  .xray-pill.copied::before,
+  .xray-pill.loading .loading-text::before,
+  .xray-pin,
+  .xray-hover-card {
+    animation: none !important;
+    transition: none !important;
+  }
 }

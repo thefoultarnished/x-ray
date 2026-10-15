@@ -296,6 +296,8 @@ const saved = () =>
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
 const removePosts = () => {
+  // A frame scheduled under fake timers would be lost when real timers return, so let it run first.
+  if (vi.isFakeTimers()) vi.advanceTimersByTime(20);
   vi.useRealTimers();
   document.querySelectorAll('article').forEach((a) => a.remove());
 };
@@ -766,6 +768,69 @@ describe('odd data from X', () => {
     await vi.waitFor(() => expect(fine.querySelector('.xray-pin')).not.toBeNull());
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('[X-Ray]'), expect.any(Error));
     warn.mockRestore();
+  });
+});
+
+describe('checking posts as the page changes', () => {
+  afterEach(removePosts);
+
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+  const pinsIn = (article) => article.querySelectorAll('button[data-handle]').length;
+
+  it('gives every post in a big batch exactly one pin', async () => {
+    const articles = [];
+    for (let i = 0; i < 50; i++) articles.push(newPost(`batch_${i}`));
+    await vi.waitFor(() => expect(articles.every((a) => pinsIn(a) === 1)).toBe(true));
+    await nextFrame();
+    await nextFrame();
+    expect(articles.map(pinsIn).every((n) => n === 1)).toBe(true);
+  });
+
+  it('adds the pin when X fills in the menu button after the post appears', async () => {
+    const article = document.createElement('article');
+    article.dataset.testid = 'tweet';
+    article.innerHTML = '<div data-testid="User-Name"><a href="/late_menu">late_menu</a></div><div class="menu"></div>';
+    document.body.append(article);
+    await nextFrame();
+    await nextFrame();
+    expect(pinsIn(article)).toBe(0);
+
+    const caret = document.createElement('div');
+    caret.dataset.testid = 'caret';
+    article.querySelector('.menu').append(caret);
+    await vi.waitFor(() => expect(pinsIn(article)).toBe(1));
+  });
+
+  it('does not recheck older posts when something else on the page changes', async () => {
+    const old = newPost('old_post');
+    await vi.waitFor(() => expect(pinsIn(old)).toBe(1));
+    old.querySelector('button[data-handle]').remove();
+
+    for (let i = 0; i < 20; i++) document.body.append(document.createElement('div'));
+    await nextFrame();
+    await nextFrame();
+    expect(pinsIn(old)).toBe(0);
+
+    const fresh = newPost('fresh_post');
+    await vi.waitFor(() => expect(pinsIn(fresh)).toBe(1));
+    expect(pinsIn(old)).toBe(0);
+  });
+
+  it('still adds pins to posts that are placed inside a new container', async () => {
+    const wrapper = document.createElement('section');
+    wrapper.append(newPost('wrapped_a'), newPost('wrapped_b'));
+    document.body.append(wrapper);
+    await vi.waitFor(() => expect(wrapper.querySelectorAll('button[data-handle]')).toHaveLength(2));
+  });
+
+  it('adds nothing for a post that has no author link', async () => {
+    const article = document.createElement('article');
+    article.dataset.testid = 'tweet';
+    article.innerHTML = '<div><div data-testid="caret"></div></div>';
+    document.body.append(article);
+    await nextFrame();
+    await nextFrame();
+    expect(pinsIn(article)).toBe(0);
   });
 });
 
