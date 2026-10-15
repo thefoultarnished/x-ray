@@ -203,6 +203,12 @@ if (window === window.top) {
     return content;
   }
 
+  // "Chile, iPhone": what a screen reader says for a result.
+  function describeResult(location, source) {
+    const app = source ? sourceText(source) : '';
+    return app ? `${location || 'Unknown'}, ${app}` : location || 'Unknown';
+  }
+
   function renderPill(btn, location, source) {
     if (btn._resetCopyTimer) {
       clearTimeout(btn._resetCopyTimer);
@@ -211,7 +217,9 @@ if (window === window.top) {
 
     const isAndroid = Boolean(source) && /android|play store/i.test(source);
     const pillClass = isAndroid ? 'loc-pill android-device' : 'loc-pill';
+    const pillLabel = `Copy location: ${describeResult(location, source)}`;
     btn.className = pillClass;
+    btn.setAttribute('aria-label', pillLabel);
     // Clears the click block left over from the loading state.
     btn.style.pointerEvents = '';
     btn.replaceChildren(createFlag(location), location || 'Unknown Loc');
@@ -245,11 +253,14 @@ if (window === window.top) {
         Promise.resolve(copyPromise)
           .then(() => {
             btn.className = `${pillClass} copied`;
+            btn.setAttribute('aria-label', 'Copied');
             btn.replaceChildren(createIcon(ICONS.CHECKMARK), ' Copied!');
+            announce(`Copied ${describeResult(location, source)}`);
 
             clearTimeout(btn._resetCopyTimer);
             btn._resetCopyTimer = setTimeout(() => {
               btn.className = pillClass;
+              btn.setAttribute('aria-label', pillLabel);
               btn.replaceChildren(...originalContent);
               isCopying = false;
               btn._resetCopyTimer = null;
@@ -262,11 +273,18 @@ if (window === window.top) {
         isCopying = false;
       }
     };
-    btn.onmouseenter = () => showHoverCard(btn, location, source);
-    btn.onmouseleave = () => hideHoverCard();
+    btn.onmouseenter = btn.onfocus = () => showHoverCard(btn, location, source);
+    btn.onmouseleave = btn.onblur = () => hideHoverCard();
   }
 
   const locationMap = {};
+  const PIN_LABEL = 'Get Location & App Store';
+  let liveRegion = null;
+
+  // One hidden line that screen readers read out, updated in place.
+  function announce(text) {
+    if (liveRegion) liveRegion.textContent = text;
+  }
   let scraperFrame = null;
   let busyHandle = null;
   const LOADING_TEXT = 'Locating...';
@@ -382,6 +400,7 @@ if (window === window.top) {
 
     saveToCache(handle, location, source);
     updateToLocationText(handle, location, source);
+    announce(`@${handle}: ${describeResult(location, source)}`);
 
     scraperFrame.src = 'about:blank';
     busyHandle = null;
@@ -435,6 +454,7 @@ if (window === window.top) {
       btn.style.transition = 'none';
       btn.innerHTML = '';
       btn.className = 'loc-pill loading';
+      btn.setAttribute('aria-label', initialText);
       btn.style.pointerEvents = 'none';
       btn.offsetHeight;
       btn.style.transition = '';
@@ -452,6 +472,7 @@ if (window === window.top) {
       btn.appendChild(loadingText);
     });
 
+    announce(`Looking up @${handle}`);
     requestQueue.push(handle);
     requestQueueSet.add(handle);
     processQueue();
@@ -471,9 +492,11 @@ if (window === window.top) {
   function loadAboutPage(handle) {
     busyHandle = handle;
 
-    document.querySelectorAll(`.loc-pill.loading[data-handle="${handle}"] .loading-text`).forEach((el) => {
-      el.textContent = LOADING_TEXT;
-      el.setAttribute('data-text', LOADING_TEXT);
+    document.querySelectorAll(`.loc-pill.loading[data-handle="${handle}"]`).forEach((pill) => {
+      const text = pill.querySelector('.loading-text');
+      text.textContent = LOADING_TEXT;
+      text.setAttribute('data-text', LOADING_TEXT);
+      pill.setAttribute('aria-label', LOADING_TEXT);
     });
 
     const iframe = getScraperFrame();
@@ -486,6 +509,7 @@ if (window === window.top) {
       isProcessingQueue = false;
       console.warn(`[X-Ray] No location data for @${handle} after ${LOOKUP_TIMEOUT_MS / 1000}s`);
       document.querySelectorAll(`.loc-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
+      announce(`Not available for @${handle}`);
       if (scraperFrame) scraperFrame.src = 'about:blank';
       processQueue();
     }, LOOKUP_TIMEOUT_MS);
@@ -494,11 +518,13 @@ if (window === window.top) {
   // The pill keeps its original pin click handler, so restoring the class and icon makes it clickable again.
   function showNotAvailable(btn) {
     btn.className = 'loc-pill unavailable';
+    btn.setAttribute('aria-label', NOT_AVAILABLE_TEXT);
     btn.textContent = NOT_AVAILABLE_TEXT;
     setTimeout(() => {
       // A late result may have replaced the pill meanwhile; leave that alone.
       if (!btn.isConnected || !btn.classList.contains('unavailable')) return;
       btn.className = 'loc-btn';
+      btn.setAttribute('aria-label', PIN_LABEL);
       btn.innerHTML = ICONS.PIN;
       btn.style.pointerEvents = '';
     }, NOT_AVAILABLE_MS);
@@ -525,6 +551,11 @@ if (window === window.top) {
     });
     document.body.appendChild(tooltip);
 
+    liveRegion = document.createElement('div');
+    liveRegion.className = 'xray-sr-only';
+    liveRegion.setAttribute('role', 'status');
+    document.body.appendChild(liveRegion);
+
     function processTweets() {
       document.querySelectorAll('article[data-testid="tweet"]').forEach((article) => {
         // One broken post must not stop the others from getting their pin.
@@ -550,24 +581,27 @@ if (window === window.top) {
 
       if (!targetNode) return;
 
-      const btn = document.createElement('div');
+      const btn = document.createElement('button');
+      btn.type = 'button';
       btn.dataset.handle = handle;
 
       if (locationMap[handle]) {
         renderPill(btn, locationMap[handle].loc, locationMap[handle].src);
       } else {
         btn.className = 'loc-btn';
+        btn.setAttribute('aria-label', PIN_LABEL);
         btn.innerHTML = ICONS.PIN;
 
         btn.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
           tooltip.style.display = 'none';
-          queueRequest(handle);
+          // Enter and Space still reach a pill that is looking up; only a pin may start a lookup.
+          if (btn.classList.contains('loc-btn')) queueRequest(handle);
         };
 
-        btn.onmouseenter = () => showTooltip(btn, 'Get Location & App Store');
-        btn.onmouseleave = () => {
+        btn.onmouseenter = btn.onfocus = () => showTooltip(btn, PIN_LABEL);
+        btn.onmouseleave = btn.onblur = () => {
           tooltip.style.display = 'none';
         };
       }
@@ -628,6 +662,13 @@ if (window === window.top) {
       card = createHoverCard();
     }
 
+    const isAndroid = Boolean(source) && /android|play store/i.test(source);
+    if (isAndroid) {
+      card.classList.add('android-device');
+    } else {
+      card.classList.remove('android-device');
+    }
+
     let store = { code: null, name: '' };
     let sourcePlatform = '';
 
@@ -655,18 +696,32 @@ if (window === window.top) {
     );
 
     const rect = btn.getBoundingClientRect();
-    const cardHeight = 100;
     const scrollY = window.scrollY || window.pageYOffset;
+    const scrollX = window.scrollX || window.pageXOffset;
 
-    const spaceBelow = window.innerHeight - rect.bottom;
-    if (spaceBelow > cardHeight + 20) {
-      card.style.top = rect.bottom + scrollY + 8 + 'px';
+    const cardWidth = card.offsetWidth || 210;
+    const cardHeight = card.offsetHeight || 75;
+
+    const spaceRight = window.innerWidth - rect.right;
+    const placeOnLeft = spaceRight < cardWidth + 16 && rect.left > cardWidth + 16;
+
+    if (placeOnLeft) {
+      card.classList.add('pos-left');
+      card.style.left = rect.left + scrollX - cardWidth - 8 + 'px';
     } else {
-      card.style.top = rect.top + scrollY - cardHeight - 8 + 'px';
+      card.classList.remove('pos-left');
+      card.style.left = rect.right + scrollX + 8 + 'px';
     }
 
-    card.style.left = rect.left + 'px';
+    const pillCenterY = rect.top + scrollY + rect.height / 2;
+    const idealTop = pillCenterY - cardHeight / 2;
+    const minTop = scrollY + 8;
+    const maxTop = scrollY + window.innerHeight - cardHeight - 8;
+    const cardTop = Math.max(minTop, Math.min(maxTop, idealTop));
+    card.style.top = cardTop + 'px';
 
+    const arrowOffset = Math.max(12, Math.min(cardHeight - 18, pillCenterY - cardTop - 6));
+    card.style.setProperty('--arrow-top', `${arrowOffset}px`);
     requestAnimationFrame(() => {
       card.classList.add('show');
     });

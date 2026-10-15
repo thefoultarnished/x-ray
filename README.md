@@ -1,7 +1,6 @@
 # X-Ray for Twitter
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue?logo=google-chrome)](https://chrome.google.com/webstore)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.5-orange.svg)](src/manifest.json)
 
 > **Reveal the user location and device info of any Twitter/X user with a single click based on publically available data**
@@ -53,11 +52,11 @@ Unlike other extensions that auto-load everything, X-Ray uses a **smart click-to
 ### Privacy-First
 *   **Zero data collection** - We don't track you or collect anything about you
 *   **Saved on your device only** - Locations you looked up are kept in your browser for 90 days (up to 10,000), then forgotten
-*   **No external servers** - Everything runs locally
+*   **One outside website** - Country flag pictures load from flagcdn.com, which can see your IP address and which countries you look up. Nothing else leaves your browser
 *   **Open source** - Full transparency, audit the code yourself
 
 ### Performance Optimized
-*   DNS prefetch for faster flag loading
+*   Flag pictures start loading early so they show up fast
 *   Smart caching system
 *   Efficient DOM manipulation
 *   Minimal resource footprint
@@ -109,7 +108,6 @@ X-Ray's **click-to-reveal** approach means:
 ### What It Does Not Do
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No tracking or analytics
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No data collection
-*   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No external servers
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No cookies
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No user profiling
 *   <img src="screenshots/icons/cross.svg" width="14" height="14" align="absmiddle"> No ads
@@ -118,6 +116,7 @@ X-Ray's **click-to-reveal** approach means:
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Access only publicly available profile information
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Keep looked-up locations only in your browser, for 90 days
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Use standard web security practices (XSS prevention, origin validation)
+*   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Load country flag pictures from flagcdn.com, which can see your IP address and which countries you look up
 *   <img src="screenshots/icons/check.svg" width="14" height="14" align="absmiddle"> Respect Twitter/X rate limits with click-to-reveal
 
 **Your privacy is our priority.**
@@ -179,7 +178,7 @@ X-Ray's **click-to-reveal** approach means:
 4.  Displays it beautifully with country flags and platform icons
 5.  Caches the data locally for instant re-display
 
-**No APIs. No servers. Just smart web scraping of public data.**
+**No APIs. No servers of our own. Just smart web scraping of public data.**
 
 ---
 
@@ -205,7 +204,7 @@ Automatically identifies:
 ### Rate Limits
 Twitter/X has strict rate limits. X-Ray's click-to-reveal design protects you, but:
 *   Don't spam-click hundreds of profiles rapidly
-*   The extension has built-in rate limiting (10 requests/minute max)
+*   Lookups run one at a time, only when you click, and each waits up to 10 seconds for an answer
 *   If you hit Twitter's limits, wait a few minutes
 
 ### Data Availability

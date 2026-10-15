@@ -296,6 +296,53 @@ describe('pin lookups', () => {
     expect(pill.textContent).toContain('Copied!');
   });
 
+  it('positions the hover card to the right of the pill', async () => {
+    const pin = await addPost('pos_acct');
+    pin.click();
+    found('pos_acct', 'Canada', 'iOS');
+
+    const pill = document.querySelector('[data-handle="pos_acct"]');
+    vi.spyOn(pill, 'getBoundingClientRect').mockReturnValue({
+      left: 120,
+      right: 200,
+      top: 60,
+      bottom: 80,
+      width: 80,
+      height: 20,
+    });
+
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    const card = document.getElementById('loc-hover-card');
+
+    expect(card.style.left).toBe('208px');
+    expect(card.classList.contains('pos-left')).toBe(false);
+    expect(card.classList.contains('android-device')).toBe(false);
+  });
+
+  it('positions the hover card on the left if there is not enough space on the right', async () => {
+    const pin = await addPost('edge_acct');
+    pin.click();
+    found('edge_acct', 'Brazil', 'Android App');
+
+    const pill = document.querySelector('[data-handle="edge_acct"]');
+    vi.spyOn(pill, 'getBoundingClientRect').mockReturnValue({
+      left: 850,
+      right: 950,
+      top: 60,
+      bottom: 80,
+      width: 100,
+      height: 20,
+    });
+
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    const card = document.getElementById('loc-hover-card');
+
+    expect(card.classList.contains('pos-left')).toBe(true);
+    expect(card.classList.contains('android-device')).toBe(true);
+    const cardWidth = card.offsetWidth || 210;
+    expect(card.style.left).toBe(`${850 - cardWidth - 8}px`);
+  });
+
   it('does not leave Copied! stuck on the pill after a double-click', async () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
@@ -652,6 +699,124 @@ describe('odd data from X', () => {
     await vi.waitFor(() => expect(fine.querySelector('.loc-btn')).not.toBeNull());
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('[X-Ray]'), expect.any(Error));
     warn.mockRestore();
+  });
+});
+
+describe('keyboard and screen reader use', () => {
+  afterEach(removePosts);
+
+  const label = (el) => el.getAttribute('aria-label');
+  const spoken = () => document.querySelector('[role="status"]').textContent;
+
+  it('makes the pin a real button with a name, so Tab, Enter and Space work', async () => {
+    const pin = await addPost('kbd_pin');
+    expect(pin.tagName).toBe('BUTTON');
+    expect(pin.type).toBe('button');
+    expect(label(pin)).toBe('Get Location & App Store');
+  });
+
+  it('keeps the result pill a named button that says what it holds and what it does', async () => {
+    const pin = await addPost('kbd_result');
+    pin.click();
+    found('kbd_result', 'Chile', 'Twitter for iPhone');
+
+    const pill = document.querySelector('[data-handle="kbd_result"]');
+    expect(pill).toBe(pin);
+    expect(pill.tagName).toBe('BUTTON');
+    expect(label(pill)).toBe('Copy location: Chile, iPhone');
+  });
+
+  it('names a result with no location or app plainly', async () => {
+    const pin = await addPost('kbd_unknown');
+    pin.click();
+    found('kbd_unknown', '', '');
+    expect(label(pin)).toBe('Copy location: Unknown');
+  });
+
+  it('keeps the name in step with each state and gives the pin back its name', async () => {
+    const pin = await addPost('kbd_states');
+    vi.useFakeTimers();
+    pin.click();
+    expect(label(pin)).toBe('Locating...');
+
+    vi.advanceTimersByTime(10000);
+    expect(label(pin)).toBe('Not available');
+
+    vi.advanceTimersByTime(3000);
+    expect(label(pin)).toBe('Get Location & App Store');
+  });
+
+  it('names the pill Copied while it says Copied! and restores its name after', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const pin = await addPost('kbd_copy');
+    pin.click();
+    found('kbd_copy', 'Japan', 'Web App');
+    vi.useFakeTimers();
+
+    pin.click();
+    await Promise.resolve();
+    expect(label(pin)).toBe('Copied');
+    expect(spoken()).toBe('Copied Japan, Web');
+
+    vi.advanceTimersByTime(1800);
+    expect(label(pin)).toBe('Copy location: Japan, Web');
+  });
+
+  it('says out loud when a lookup starts, finishes or fails', async () => {
+    const pin = await addPost('kbd_voice');
+    pin.click();
+    expect(spoken()).toBe('Looking up @kbd_voice');
+
+    found('kbd_voice', 'Peru', 'Android App');
+    expect(spoken()).toBe('@kbd_voice: Peru, Android');
+
+    const slow = await addPost('kbd_voice_slow');
+    vi.useFakeTimers();
+    slow.click();
+    vi.advanceTimersByTime(10000);
+    expect(spoken()).toBe('Not available for @kbd_voice_slow');
+  });
+
+  it('does not start a second lookup when Enter or Space reaches a pill that is already looking up', async () => {
+    const pin = await addPost('kbd_twice');
+    pin.click();
+    expect(pin.textContent.trim()).toBe('Locating...');
+
+    pin.click();
+    expect(pin.textContent.trim()).toBe('Locating...');
+    expect(pin.className).toBe('loc-pill loading');
+
+    // Finishes the lookup so the next test starts with an empty queue.
+    found('kbd_twice', 'Spain', 'Web App');
+    expect(pin.className).toBe('loc-pill');
+  });
+
+  it('shows the info card when the pill gets keyboard focus and hides it when focus leaves', async () => {
+    const pin = await addPost('kbd_focus');
+    pin.click();
+    found('kbd_focus', 'Canada', 'iOS');
+
+    const pill = document.querySelector('[data-handle="kbd_focus"]');
+    pill.dispatchEvent(new FocusEvent('focus'));
+    // An earlier test may have left the card open, so wait for this pill's details.
+    await vi.waitFor(() => {
+      const card = document.getElementById('loc-hover-card');
+      expect(card.classList.contains('show')).toBe(true);
+      expect(card.textContent).toContain('Canada');
+    });
+
+    pill.dispatchEvent(new FocusEvent('blur'));
+    expect(document.getElementById('loc-hover-card').classList.contains('show')).toBe(false);
+  });
+
+  it('shows the pin hint on keyboard focus and hides it when focus leaves', async () => {
+    const pin = await addPost('kbd_hint');
+    pin.dispatchEvent(new FocusEvent('focus'));
+    expect(document.getElementById('x-tooltip').style.display).toBe('block');
+
+    pin.dispatchEvent(new FocusEvent('blur'));
+    expect(document.getElementById('x-tooltip').style.display).toBe('none');
   });
 });
 
