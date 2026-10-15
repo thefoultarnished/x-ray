@@ -29,10 +29,16 @@
   "content_scripts": [
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["inject-parser.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": ["flags.js", "content.js"],
       "css": ["styles.css"],
       "run_at": "document_start",
-      "all_frames": true
+      "all_frames": false
     }
   ],
   "content_security_policy": {

@@ -171,6 +171,11 @@
         <li><b>No more doubled store country.</b> An app store country such as "Russia App Store" now shows as just its flag, and the info card spells country names properly.</li>
         <li><b>No more stuck "Copied!" message.</b> Clicking a result pill twice quickly no longer leaves it stuck showing "Copied!", accounts with no location copy as unknown instead of undefined, and "Copied!" only appears when copying succeeded.</li>
         <li><b>Works with the keyboard.</b> You can Tab to the pin and result pills, press Enter or Space to use them, see where focus is, and screen readers now read out each button's name and the lookup result.</li>
+        <li><b>Faster saving.</b> X-Ray no longer rereads every saved location after each lookup. Old and extra results are cleared once when X loads instead.</li>
+        <li><b>Escape closes the hint and the card.</b> When a pin or result pill has keyboard focus, pressing Escape hides its hint or info card without moving focus away.</li>
+        <li><b>Web accounts show their country.</b> For accounts that use the web app, the info card's Platform row now shows their location with its flag, such as "Peru · Web", instead of "Unknown".</li>
+        <li><b>Clean copied text.</b> If X sends an account's app name as a link, copying a result now gives you just the words, such as "Peru (Twitter for iPhone)", with no code around it.</li>
+        <li><b>Lighter on X's other frames.</b> Only the main X page now loads X-Ray's flags, script and styles. Other frames on X get just one tiny script, so they no longer each load the whole extension.</li>
         <li><b>No double lookups.</b> If you click a pin while the same account is already being looked up, the new pin now joins that lookup instead of sending a second request to X. Posts that appear during a lookup show "Locating..." right away.</li>
         <li><b>No pins that can't work.</b> X-Ray now adds a pin only when a post's name link is a real account name, so posts with other kinds of links no longer get a pin that ends on "Not available".</li>
         <li><b>Pin hint stays on screen.</b> The "Get Location &amp; App Store" hint now stays inside the window near the right edge, goes away if X removes the post you were pointing at, and no longer pops up over a pill that is already looking up.</li>

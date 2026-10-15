@@ -25,9 +25,8 @@ const storageArea = {
 };
 
 beforeAll(() => {
-  // content.js asks for parser.js's URL as soon as it loads.
   globalThis.chrome = {
-    runtime: { id: 'test', getURL: (path) => `chrome-extension://test/${path}` },
+    runtime: { id: 'test' },
     storage: { local: storageArea },
   };
   // Node's own localStorage replaces jsdom's and doesn't work without a file, so use a simple one.
@@ -663,30 +662,6 @@ describe('saved results', () => {
     expect(Date.now() - saved().new_acct.timestamp).toBeLessThan(1000);
   });
 
-  it('forgets results older than 90 days and broken entries, and leaves other extension data alone', async () => {
-    plant({ Ancient: result(90.01), Recent: result(89.99), Broken: { loc: 'Peru' } });
-    extensionStorage.set('someSetting', true);
-    await lookUp('fresh_save');
-
-    expect(Object.keys(saved()).sort()).toEqual(['Recent', 'fresh_save']);
-    expect(extensionStorage.get('someSetting')).toBe(true);
-    extensionStorage.delete('someSetting');
-  });
-
-  it('keeps at most 10,000 results, dropping the oldest first', async () => {
-    const many = {};
-    for (let i = 0; i < 10000; i++)
-      many[`acct${i}`] = { loc: 'Japan', src: 'Web', timestamp: Date.now() - (i + 1) * 1000 };
-    plant(many);
-    await lookUp('newest');
-
-    const after = saved();
-    expect(Object.keys(after)).toHaveLength(10000);
-    expect(after).toHaveProperty('newest');
-    expect(after).toHaveProperty('acct0');
-    expect(after).not.toHaveProperty('acct9999');
-  });
-
   it('keeps results another X tab saved in the meantime', async () => {
     plant({});
     await lookUp('tab_one');
@@ -715,15 +690,6 @@ describe('saved results', () => {
     } finally {
       chrome.runtime.id = id;
     }
-  });
-
-  it('removes a saved result that is not plain text at the next save', async () => {
-    extensionStorage.set('loc:BadSaved', { loc: 123, src: 'Web', timestamp: Date.now() });
-    extensionStorage.set('loc:BadSource', { loc: 'Peru', src: ['x'], timestamp: Date.now() });
-    await lookUp('cleanup_trigger');
-
-    expect(saved()).not.toHaveProperty('BadSaved');
-    expect(saved()).not.toHaveProperty('BadSource');
   });
 });
 
@@ -902,8 +868,11 @@ describe('accounts already being looked up', () => {
 
     // A new post by the same account starts a fresh lookup while the old pin is still resting.
     const fresh = newPost('join_again');
-    await Promise.resolve();
-    vi.advanceTimersByTime(20);
+    // Frames run on the fake clock, so move it forward until the pin shows up.
+    for (let i = 0; i < 10 && !fresh.querySelector('button'); i++) {
+      await Promise.resolve();
+      vi.advanceTimersByTime(20);
+    }
     const freshPin = fresh.querySelector('button');
     userClick(freshPin);
     expect(lookups('join_again')).toBe(2);
@@ -1069,6 +1038,76 @@ describe('pin hint display', () => {
   });
 });
 
+describe('closing the hint and the card with Escape', () => {
+  afterEach(removePosts);
+
+  const card = () => document.querySelector('.xray-hover-card');
+  const hint = () => document.querySelector('.xray-tooltip');
+  const press = (el, key) => {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    el.dispatchEvent(event);
+    return event;
+  };
+
+  async function shownPill(handle) {
+    const pin = await addPost(handle);
+    userClick(pin);
+    found(handle, 'Peru', 'Web App');
+    pin.dispatchEvent(new FocusEvent('focus'));
+    await vi.waitFor(() => expect(card().classList.contains('show')).toBe(true));
+    return pin;
+  }
+
+  it('hides the info card when Escape is pressed on the focused pill', async () => {
+    const pill = await shownPill('esc_card');
+    press(pill, 'Escape');
+    expect(card().classList.contains('show')).toBe(false);
+  });
+
+  it('hides the pin hint when Escape is pressed on the focused pin', async () => {
+    const pin = await addPost('esc_hint');
+    pin.dispatchEvent(new FocusEvent('focus'));
+    expect(hint().style.display).toBe('block');
+
+    press(pin, 'Escape');
+    expect(hint().style.display).toBe('none');
+  });
+
+  it('leaves the card and the hint alone for other keys', async () => {
+    const pill = await shownPill('esc_other');
+    for (const key of ['Enter', 'Tab', 'a', ' ', 'ArrowDown']) press(pill, key);
+    expect(card().classList.contains('show')).toBe(true);
+
+    const pin = await addPost('esc_other_pin');
+    pin.dispatchEvent(new FocusEvent('focus'));
+    press(pin, 'Tab');
+    expect(hint().style.display).toBe('block');
+  });
+
+  it('does nothing, and does not fail, when Escape is pressed with nothing showing', async () => {
+    const pin = await addPost('esc_none');
+    expect(() => press(pin, 'Escape')).not.toThrow();
+    expect(hint().style.display).not.toBe('block');
+  });
+
+  it('shows the card again when the pill gets focus again after Escape', async () => {
+    const pill = await shownPill('esc_again');
+    press(pill, 'Escape');
+    pill.dispatchEvent(new FocusEvent('blur'));
+    pill.dispatchEvent(new FocusEvent('focus'));
+    await vi.waitFor(() => expect(card().classList.contains('show')).toBe(true));
+  });
+
+  it('does not stop the Escape key from reaching X', async () => {
+    const pill = await shownPill('esc_pass');
+    const event = press(pill, 'Escape');
+    expect(event.defaultPrevented).toBe(false);
+
+    const pin = await addPost('esc_pass_pin');
+    expect(press(pin, 'Escape').defaultPrevented).toBe(false);
+  });
+});
+
 describe('pin hint on a pin that turned into a pill', () => {
   afterEach(removePosts);
 
@@ -1178,15 +1217,62 @@ describe('info card display', () => {
     expect(rows()).toEqual(['Kenya', 'Latin America · Android']);
   });
 
-  it('still shows a country store by its flag and name, and Unknown when no store is named', async () => {
+  it('still shows a country store by its flag and name, and Unknown when an iOS app names no store', async () => {
     const country = await resultPill('card_country', 'Peru', 'Japan App Store');
     country.dispatchEvent(new MouseEvent('mouseenter'));
     expect(rows()).toEqual(['Peru', 'Japan · iOS']);
     expect(card().querySelectorAll('.xray-hover-value')[1].querySelector('img.xray-flag')).not.toBeNull();
 
-    const web = await resultPill('card_web', 'Peru', 'Web App');
-    web.dispatchEvent(new MouseEvent('mouseenter'));
-    expect(rows()).toEqual(['Peru', 'Unknown · Web']);
+    const none = await resultPill('card_none', 'Peru', 'Twitter for iPhone');
+    none.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Unknown · iOS']);
+  });
+
+  it('shows the location of the account as the platform country for the web app', async () => {
+    const pill = await resultPill('card_web', 'Peru', 'Web App');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Peru · Web']);
+    const platform = card().querySelectorAll('.xray-hover-value')[1];
+    expect(platform.querySelector('img.xray-flag').getAttribute('src')).toBe(flagImages.pe);
+  });
+
+  it('also uses the location for a web app that X names with extra words', async () => {
+    const plain = await resultPill('card_web_two', 'India', 'Web');
+    plain.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['India', 'India · Web']);
+
+    const twitter = await resultPill('card_web_three', 'Japan', 'Twitter Web App');
+    twitter.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Japan', 'Japan · Web']);
+  });
+
+  it('shows the globe with the location for a web account whose location has no flag', async () => {
+    const pill = await resultPill('card_web_reg', 'North America', 'Web App');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['North America', 'North America · Web']);
+    const platform = card().querySelectorAll('.xray-hover-value')[1];
+    expect(platform.querySelector('img')).toBeNull();
+    expect(platform.querySelector('.xray-globe')).not.toBeNull();
+  });
+
+  it('still shows Unknown for a web account that has no location', async () => {
+    const pill = await resultPill('card_web_none', '', 'Web App');
+    pill.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Unknown', 'Unknown · Web']);
+  });
+
+  it('keeps the store country for iOS and Android, and a store region over the location', async () => {
+    const ios = await resultPill('card_ios_keep', 'Peru', 'Japan App Store');
+    ios.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Japan · iOS']);
+
+    const android = await resultPill('card_and_keep', 'Peru', 'Android App');
+    android.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Peru', 'Unknown · Android']);
+
+    const region = await resultPill('card_reg_keep', 'Europe', 'South Asia App Store');
+    region.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(rows()).toEqual(['Europe', 'South Asia · iOS']);
   });
 
   it('keeps the card inside the window when neither side has enough room', async () => {
@@ -1347,6 +1433,47 @@ describe('the hidden lookup frame', () => {
 
     found('frame_late', 'Peru', 'Web App', oldFrame);
     expect(pin.textContent.trim()).toBe('Not available');
+  });
+});
+
+describe('what gets copied', () => {
+  afterEach(removePosts);
+
+  async function copiedFor(handle, location, source) {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const pin = await addPost(handle);
+    userClick(pin);
+    found(handle, location, source);
+    userClick(pin);
+    return writeText.mock.calls.map((call) => call[0]);
+  }
+
+  it('copies an app name that X sent as a link as plain text, with no tags', async () => {
+    const link = '<a href="https://help.x.com/en" rel="nofollow">Twitter for iPhone</a>';
+    expect(await copiedFor('copy_link', 'Peru', link)).toEqual(['Peru (Twitter for iPhone)']);
+  });
+
+  it('copies plain app names exactly as X sent them', async () => {
+    expect(await copiedFor('copy_web', 'Japan', 'Web App')).toEqual(['Japan (Web App)']);
+    expect(await copiedFor('copy_store', 'Chile', 'United States App Store')).toEqual([
+      'Chile (United States App Store)',
+    ]);
+  });
+
+  it('copies just the location when there is no app, or the app name has no text', async () => {
+    expect(await copiedFor('copy_none', 'Kenya', '')).toEqual(['Kenya']);
+    expect(await copiedFor('copy_empty', 'Spain', '<a href="https://x.com"></a>')).toEqual(['Spain']);
+  });
+
+  it('copies tags hidden in the app name as plain text, never as markup', async () => {
+    const [copied] = await copiedFor('copy_tags', 'Peru', '&lt;b&gt;FAKE&lt;/b&gt; <i>Web</i> App');
+    expect(copied).toBe('Peru (<b>FAKE</b> Web App)');
+    expect(copied).not.toContain('<i>');
+  });
+
+  it('still copies Unknown when there is no location but there is an app', async () => {
+    expect(await copiedFor('copy_noloc', '', '<b>App Store</b>')).toEqual(['Unknown (App Store)']);
   });
 });
 

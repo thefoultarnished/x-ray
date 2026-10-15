@@ -15,7 +15,7 @@ const PLANTED = `
 beforeAll(async () => {
   document.body.innerHTML = PLANTED;
   globalThis.chrome = {
-    runtime: { id: 'test', getURL: (path) => `chrome-extension://test/${path}` },
+    runtime: { id: 'test' },
     storage: { local: { get: async () => ({}), set: async () => {}, remove: async () => {} } },
   };
   const store = new Map();
