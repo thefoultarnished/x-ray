@@ -1,7 +1,5 @@
 const LINKS = {
   support: 'https://ko-fi.com/thefoultarnished',
-  // Bundled page, opened in a tab so the click doesn't navigate the popup itself.
-  appVersion: chrome.runtime.getURL('changelog.html'),
 };
 
 for (const [id, url] of Object.entries(LINKS)) {
@@ -18,24 +16,31 @@ for (const [id, url] of Object.entries(LINKS)) {
 
 document.getElementById('appVersion').textContent = `v${chrome.runtime.getManifest().version}`;
 
-const CLEAR_LABEL = 'Clear cache';
-const CONFIRM_LABEL = 'Click again to clear';
+const CLEAR_LABEL = 'Clear';
+const CONFIRM_LABEL = 'Click again';
 const CLEARED_LABEL = 'Cleared';
+const CLEAR_FAILED_LABEL = 'Try again';
 const CONFIRM_MS = 3000;
 
-const savedCount = document.getElementById('savedCount');
 const clearSaved = document.getElementById('clearSaved');
+const cacheInfo = document.getElementById('cacheInfo');
+let cachedCount = 0;
 let confirmTimer = null;
 let isConfirming = false;
 
-async function showSavedCount() {
+function showIdle() {
+  clearSaved.textContent = CLEAR_LABEL;
+  cacheInfo.textContent = `Cached records: ${cachedCount}. Clearing them means those accounts are looked up again.`;
+}
+
+async function refreshCount() {
   try {
-    const count = await countSavedResults(chrome.storage.local);
-    savedCount.textContent = `Cached Records: ${count}`;
-    clearSaved.disabled = count === 0;
+    cachedCount = await countSavedResults(chrome.storage.local);
+    clearSaved.disabled = cachedCount === 0;
+    showIdle();
   } catch (err) {
     console.warn('[X-Ray] Could not read cached records:', err);
-    savedCount.textContent = 'Could not read cached records';
+    cacheInfo.textContent = 'Could not read cached records.';
     clearSaved.disabled = true;
   }
 }
@@ -56,29 +61,29 @@ clearSaved.addEventListener('click', async () => {
     confirmTimer = setTimeout(stopConfirming, CONFIRM_MS);
     return;
   }
-  clearTimeout(confirmTimer);
-  isConfirming = false;
-  clearSaved.classList.remove('confirming');
+  stopConfirming();
   try {
     await clearSavedResults(chrome.storage.local);
+    cachedCount = 0;
+    clearSaved.disabled = true;
+    showIdle();
     clearSaved.textContent = CLEARED_LABEL;
-    setTimeout(() => {
-      clearSaved.textContent = CLEAR_LABEL;
-    }, CONFIRM_MS);
   } catch (err) {
     console.warn('[X-Ray] Could not clear cached records:', err);
-    clearSaved.textContent = CLEAR_LABEL;
-    savedCount.textContent = 'Could not clear cached records';
-    return;
+    clearSaved.textContent = CLEAR_FAILED_LABEL;
+    cacheInfo.textContent = 'Could not clear cached records.';
   }
-  showSavedCount();
+  // Back to the normal label with a fresh count, unless the user already started clearing again.
+  setTimeout(() => {
+    if (!isConfirming) refreshCount();
+  }, CONFIRM_MS);
 });
 
-showSavedCount();
+refreshCount();
 
 const autoReveal = document.getElementById('autoReveal');
 const autoDelay = document.getElementById('autoDelay');
-const autoDelayRow = document.getElementById('autoDelayRow');
+const delayCard = document.getElementById('delayCard');
 
 for (const seconds of AUTO_DELAY_OPTIONS) {
   const option = document.createElement('option');
@@ -92,7 +97,7 @@ function showSettings(raw) {
   autoReveal.checked = settings[SETTINGS.AUTO_REVEAL];
   autoDelay.value = String(settings[SETTINGS.AUTO_DELAY_SEC]);
   autoDelay.disabled = !autoReveal.checked;
-  autoDelayRow.classList.toggle('off', !autoReveal.checked);
+  delayCard.classList.toggle('off', !autoReveal.checked);
 }
 
 async function loadSettings() {
@@ -121,4 +126,5 @@ async function saveSettings() {
 
 autoReveal.addEventListener('change', saveSettings);
 autoDelay.addEventListener('change', saveSettings);
+
 loadSettings();

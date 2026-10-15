@@ -19,6 +19,7 @@
       --danger-strong: rgba(244, 67, 54, 0.22);
       --danger-strong-border: rgba(244, 67, 54, 0.55);
       --danger-text: #ff9a94;
+      --warning-text: #f2c94c;
       --switch-off: rgba(255, 255, 255, 0.18);
       --switch-knob: #fff;
       --text: #f2f5f8;
@@ -57,12 +58,19 @@
 
     h1 {
       margin: 0;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
-      line-height: 1;
+      line-height: 1.2;
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .tagline {
+      margin: 2px 0 0;
+      font-size: 11px;
+      line-height: 1.2;
+      color: var(--text-3);
     }
 
     .version-tag {
@@ -74,37 +82,31 @@
       border-radius: var(--radius-sm);
       background: var(--surface);
       border: 1px solid var(--border);
-      text-decoration: none;
       line-height: 1.2;
-      transition: color 0.15s, border-color 0.15s;
+      margin-inline-start: auto;
     }
 
-    .version-tag:hover {
+    .support-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px 10px;
+      padding: 14px 16px 0;
+      font-size: 12px;
       color: var(--text-2);
-      border-color: var(--text-3);
-    }
-
-    main {
-      padding: 14px 16px 4px;
-    }
-
-    .note {
-      margin: 0 2px;
-      font-size: 11.5px;
-      color: var(--text-3);
     }
 
     .support {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-inline-start: auto;
-      padding: 4px 10px;
+      gap: 5px;
+      padding: 2px 8px;
       border: 1px solid var(--accent-soft-border);
       border-radius: 999px;
       background: var(--accent-soft);
       color: var(--text);
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 600;
       line-height: 1.3;
       text-decoration: none;
@@ -117,36 +119,44 @@
       border-color: var(--accent);
     }
 
-    .auto {
-      margin-top: 12px;
+    main {
+      padding: 14px 16px 4px;
+    }
+
+    main > * + * {
+      margin-top: 10px;
+    }
+
+    .card {
       padding: 10px 14px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
     }
 
-    .auto-row {
+    .card-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
     }
 
-    .auto-row + .auto-row {
-      margin-top: 8px;
-    }
-
-    .auto-title {
+    .card-title {
       font-weight: 600;
     }
 
-    .auto-warning {
+    .card-note {
       margin: 6px 0 0;
       font-size: 11.5px;
       color: var(--text-3);
     }
 
-    .auto input[type='checkbox'] {
+    .card-note.warning {
+      margin-top: 4px;
+      color: var(--warning-text);
+    }
+
+    .card input[type='checkbox'] {
       appearance: none;
       position: relative;
       flex-shrink: 0;
@@ -159,7 +169,7 @@
       transition: background 0.2s;
     }
 
-    .auto input[type='checkbox']::after {
+    .card input[type='checkbox']::after {
       content: '';
       position: absolute;
       inset-block-start: 2px;
@@ -172,72 +182,92 @@
       transition: transform 0.2s;
     }
 
-    .auto input[type='checkbox']:checked {
+    .card input[type='checkbox']:checked {
       background: var(--accent);
     }
 
-    .auto input[type='checkbox']:checked::after {
+    .card input[type='checkbox']:checked::after {
       transform: translateX(16px);
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      .auto input[type='checkbox'],
-      .auto input[type='checkbox']::after {
-        transition: none;
-      }
+    .clear-button {
+      flex-shrink: 0;
+      min-block-size: 28px;
+      padding: 0 14px;
+      border: 1px solid var(--danger-soft-border);
+      border-radius: 999px;
+      background: var(--danger-soft);
+      color: var(--danger-text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
     }
 
-    .auto select {
-      padding: 3px 6px;
+    .clear-button:hover:not(:disabled),
+    .clear-button.confirming {
+      background: var(--danger-strong);
+      border-color: var(--danger-strong-border);
+    }
+
+    .clear-button:disabled {
+      color: var(--text-3);
+      background: var(--surface);
+      border-color: var(--border);
+      cursor: default;
+    }
+
+    .card.off .card-title {
+      color: var(--text-3);
+    }
+
+    .card select {
+      flex-shrink: 0;
+      padding: 4px 8px;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      background: var(--bg);
+      background: var(--surface);
       color: var(--text);
       font: inherit;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
     }
 
-    .auto select:disabled,
-    .auto-row.off label {
+    .card select:hover:not(:disabled) {
+      background: var(--surface-hover);
+      border-color: var(--accent);
+    }
+
+    .card select:disabled {
       color: var(--text-3);
+      cursor: default;
+      opacity: 0.6;
     }
 
     /* Newer browsers let the open list be styled too. Older ones keep the plain select above. */
     @supports (appearance: base-select) {
-      .auto select,
-      .auto select::picker(select) {
+      .card select,
+      .card select::picker(select) {
         appearance: base-select;
       }
 
-      .auto select {
+      .card select {
         display: flex;
         align-items: center;
         gap: 8px;
         padding: 4px 8px 4px 10px;
-        background: var(--surface);
-        cursor: pointer;
-        transition: background 0.15s, border-color 0.15s;
       }
 
-      .auto select:hover:not(:disabled) {
-        background: var(--surface-hover);
-        border-color: var(--accent);
-      }
-
-      .auto select:disabled {
-        cursor: default;
-        opacity: 0.6;
-      }
-
-      .auto select::picker-icon {
+      .card select::picker-icon {
         color: var(--text-3);
         transition: rotate 0.2s;
       }
 
-      .auto select:open::picker-icon {
+      .card select:open::picker-icon {
         rotate: 180deg;
       }
 
-      .auto select::picker(select) {
+      .card select::picker(select) {
         margin-block-start: 4px;
         padding: 4px;
         border: 1px solid var(--border);
@@ -246,81 +276,44 @@
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       }
 
-      .auto option {
+      .card option {
         padding: 6px 12px;
         border-radius: var(--radius-sm);
         color: var(--text-2);
         cursor: pointer;
       }
 
-      .auto option:hover {
+      .card option:hover {
         background: var(--surface-hover);
         color: var(--text);
       }
 
-      .auto option:checked {
+      .card option:checked {
         background: var(--accent-soft);
         color: var(--text);
       }
 
-      .auto option::checkmark {
+      .card option::checkmark {
         display: none;
       }
-
-      @media (prefers-reduced-motion: reduce) {
-        .auto select,
-        .auto select::picker-icon {
-          transition: none;
-        }
-      }
-    }
-
-    .saved {
-      margin-top: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .saved-count {
-      margin: 0;
-      color: var(--text-2);
-    }
-
-    .clear-saved {
-      min-block-size: 30px;
-      padding: 0 12px;
-      border: 1px solid var(--danger-soft-border);
-      border-radius: var(--radius);
-      background: var(--danger-soft);
-      color: var(--danger-text);
-      font: inherit;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-    }
-
-    .clear-saved:hover:not(:disabled),
-    .clear-saved.confirming {
-      background: var(--danger-strong);
-      border-color: var(--danger-strong-border);
-    }
-
-    .clear-saved:disabled {
-      color: var(--text-3);
-      background: var(--surface);
-      border-color: var(--border);
-      cursor: default;
     }
 
     footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
       padding: 12px 16px 14px;
       font-size: 11px;
       color: var(--text-3);
+      text-align: center;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card input[type='checkbox'],
+      .card input[type='checkbox']::after,
+      .clear-button,
+      .card select,
+      .card select::picker-icon,
+      .support {
+        transition: none;
+      }
     }
 
     :where(a, button):focus-visible {
@@ -331,37 +324,51 @@
 </head>
 <body>
   <header>
-    <img class="logo" src="icons/icon48.png" width="24" height="24" alt="" />
-    <h1>X-Ray <a href="changelog.html" class="version-tag" id="appVersion" title="What's new">v1.5</a></h1>
-    <a class="support" id="support" href="https://ko-fi.com/thefoultarnished" target="_blank" rel="noopener noreferrer">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3c-.8 1 .8 2 0 3"/><path d="M12 3c-.8 1 .8 2 0 3"/></svg>Support
-    </a>
+    <img class="logo" src="icons/icon48.png" width="32" height="32" alt="" />
+    <div class="brand">
+      <h1>X-Ray</h1>
+      <p class="tagline">for Twitter (X)</p>
+    </div>
+    <span class="version-tag" id="appVersion">v1.5</span>
   </header>
 
   <main>
-    <p class="note">Uses only the details X already shows on each profile's About page. No tracking, no accounts.</p>
-    <section class="auto" aria-labelledby="autoTitle">
-      <div class="auto-row">
-        <label for="autoReveal" class="auto-title" id="autoTitle">Auto reveal</label>
-        <input type="checkbox" role="switch" id="autoReveal" aria-describedby="autoWarning" />
+    <section class="card" id="autoCard" aria-labelledby="autoTitle">
+      <div class="card-row">
+        <label for="autoReveal" class="card-title" id="autoTitle">Auto Reveal Location</label>
+        <input type="checkbox" role="switch" id="autoReveal" aria-describedby="autoInfo autoWarning" />
       </div>
-      <p class="auto-warning" id="autoWarning">
-        Looks up the accounts on screen by itself, one at a time. X may rate limit you if you use this a lot.
+      <p class="card-note" id="autoInfo">Auto reveal location while scrolling X.</p>
+      <p class="card-note warning" id="autoWarning">
+        Warning - X may rate limit or flag your account for this. Use it at your own risk.
       </p>
-      <div class="auto-row off" id="autoDelayRow">
-        <label for="autoDelay">Wait between lookups</label>
-        <select id="autoDelay" disabled></select>
-      </div>
     </section>
-    <div class="saved">
-      <p class="saved-count" id="savedCount" role="status"></p>
-      <button type="button" class="clear-saved" id="clearSaved" disabled>Clear cache</button>
-    </div>
+
+    <section class="card off" id="delayCard" aria-labelledby="delayTitle">
+      <div class="card-row">
+        <label for="autoDelay" class="card-title" id="delayTitle">Auto Lookup Cooldown</label>
+        <select id="autoDelay" aria-describedby="delayInfo" disabled></select>
+      </div>
+      <p class="card-note" id="delayInfo">Time period between lookups to prevent rate limiting</p>
+    </section>
+
+    <section class="card" id="cacheCard" aria-labelledby="cacheTitle">
+      <div class="card-row">
+        <span class="card-title" id="cacheTitle">Clear cache</span>
+        <button type="button" class="clear-button" id="clearSaved" aria-describedby="cacheInfo" disabled>Clear</button>
+      </div>
+      <p class="card-note" id="cacheInfo" role="status"></p>
+    </section>
   </main>
 
-  <footer>
-    <span>Not affiliated with X</span>
-  </footer>
+  <div class="support-row">
+    <span>Want to support development?</span>
+    <a class="support" id="support" href="https://ko-fi.com/thefoultarnished" target="_blank" rel="noopener noreferrer">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3c-.8 1 .8 2 0 3"/><path d="M12 3c-.8 1 .8 2 0 3"/></svg>Support
+    </a>
+  </div>
+
+  <footer>Not affiliated with X</footer>
 
   <script src="saved-results.js"></script>
   <script src="settings.js"></script>

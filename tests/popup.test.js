@@ -13,7 +13,6 @@ let syncData;
 let syncFails;
 const flush = () => vi.advanceTimersByTimeAsync(0);
 const button = () => document.getElementById('clearSaved');
-const count = () => document.getElementById('savedCount').textContent;
 
 async function openPopup(values, { readFails = false, sync = {}, syncReadFails = false } = {}) {
   data = new Map(Object.entries(values));
@@ -58,24 +57,36 @@ async function openPopup(values, { readFails = false, sync = {}, syncReadFails =
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-describe('the clear cached records button', () => {
-  it('shows how many locations are saved', async () => {
+describe('the clear cache section', () => {
+  const info = () => document.getElementById('cacheInfo').textContent;
+
+  it('shows how many cached records there are, with a small description', async () => {
     await openPopup({ 'loc:a': {}, 'loc:b': {}, other: 1 });
-    expect(count()).toBe('Cached Records: 2');
+    expect(info()).toContain('Cached records: 2');
+    expect(info()).toContain('looked up again');
+    expect(button().textContent).toBe('Clear');
     expect(button().disabled).toBe(false);
   });
 
   it('is switched off when nothing is saved', async () => {
     await openPopup({ other: 1 });
-    expect(count()).toBe('Cached Records: 0');
+    expect(info()).toContain('Cached records: 0');
     expect(button().disabled).toBe(true);
+  });
+
+  it('has the label on the left and the button on the right', async () => {
+    await openPopup({});
+    const row = document.querySelector('#cacheCard .card-row');
+    expect(row.firstElementChild.textContent).toBe('Clear cache');
+    expect(row.lastElementChild).toBe(button());
+    expect(document.getElementById('cacheCard').contains(document.getElementById('cacheInfo'))).toBe(true);
   });
 
   it('asks for a second click first and clears nothing yet', async () => {
     await openPopup({ 'loc:a': {} });
     button().click();
     await flush();
-    expect(button().textContent).toBe('Click again to clear');
+    expect(button().textContent).toBe('Click again');
     expect(button().classList.contains('confirming')).toBe(true);
     expect(data.has('loc:a')).toBe(true);
   });
@@ -88,20 +99,20 @@ describe('the clear cached records button', () => {
     expect([...data.keys()]).toEqual(['movedOldResults']);
     expect(button().textContent).toBe('Cleared');
     expect(button().classList.contains('confirming')).toBe(false);
-    expect(count()).toBe('Cached Records: 0');
     expect(button().disabled).toBe(true);
+    expect(info()).toContain('Cached records: 0');
   });
 
   it('goes back to the first step when the second click comes too late', async () => {
     await openPopup({ 'loc:a': {} });
     button().click();
     await vi.advanceTimersByTimeAsync(3001);
-    expect(button().textContent).toBe('Clear cache');
+    expect(button().textContent).toBe('Clear');
     expect(button().classList.contains('confirming')).toBe(false);
     button().click();
     await flush();
     expect(data.has('loc:a')).toBe(true);
-    expect(button().textContent).toBe('Click again to clear');
+    expect(button().textContent).toBe('Click again');
   });
 
   it('shows the normal label again a few seconds after clearing', async () => {
@@ -110,10 +121,11 @@ describe('the clear cached records button', () => {
     button().click();
     await flush();
     await vi.advanceTimersByTimeAsync(3001);
-    expect(button().textContent).toBe('Clear cache');
+    expect(button().textContent).toBe('Clear');
+    expect(button().disabled).toBe(true);
   });
 
-  it('keeps the results and the normal label when clearing fails', async () => {
+  it('keeps the records and says so when clearing fails, then offers the button again', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await openPopup({ 'loc:a': {} });
     removeFails = true;
@@ -121,15 +133,19 @@ describe('the clear cached records button', () => {
     button().click();
     await flush();
     expect(data.has('loc:a')).toBe(true);
-    expect(button().textContent).toBe('Clear cache');
-    expect(count()).toBe('Could not clear cached records');
+    expect(button().textContent).toBe('Try again');
+    expect(button().disabled).toBe(false);
+    expect(info()).toBe('Could not clear cached records.');
+    await vi.advanceTimersByTimeAsync(3001);
+    expect(button().textContent).toBe('Clear');
+    expect(info()).toContain('Cached records: 1');
     warn.mockRestore();
   });
 
   it('says so, and switches the button off, when the cached records cannot be read', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     await openPopup({ 'loc:a': {} }, { readFails: true });
-    expect(count()).toBe('Could not read cached records');
+    expect(info()).toBe('Could not read cached records.');
     expect(button().disabled).toBe(true);
     warn.mockRestore();
   });
@@ -161,10 +177,23 @@ describe('the auto reveal controls', () => {
     expect([...delay().options].map((o) => o.value)).toEqual(['2', '3', '5', '10']);
   });
 
-  it('shows the warning about rate limits', async () => {
+  it('names the card Auto Reveal Location, with a short subtitle', async () => {
     await openPopup({});
-    expect(document.getElementById('autoWarning').textContent).toContain('rate limit');
-    expect(toggle().getAttribute('aria-describedby')).toBe('autoWarning');
+    expect(document.getElementById('autoTitle').textContent).toBe('Auto Reveal Location');
+    expect(document.getElementById('autoInfo').textContent).toBe('Auto reveal location while scrolling X.');
+  });
+
+  it('shows the warning on its own line, below the description', async () => {
+    await openPopup({});
+    const info = document.getElementById('autoInfo');
+    const warning = document.getElementById('autoWarning');
+    expect(info.textContent).not.toContain('rate limit');
+    expect(warning.textContent.trim()).toBe(
+      'Warning - X may rate limit or flag your account for this. Use it at your own risk.'
+    );
+    expect(warning.classList.contains('warning')).toBe(true);
+    expect(info.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(toggle().getAttribute('aria-describedby')).toBe('autoInfo autoWarning');
   });
 
   it('shows the stored settings', async () => {
@@ -234,11 +263,21 @@ describe('the support button and links', () => {
     expect(window.close).toHaveBeenCalled();
   });
 
-  it('is the only link besides the version tag, and has no Open X button', async () => {
+  it('has no Open X button, and the support link is not in the header any more', async () => {
     await openPopup({});
     expect(document.getElementById('openX')).toBeNull();
-    expect(document.querySelector('header #support')).not.toBeNull();
+    expect(document.querySelector('header #support')).toBeNull();
     expect(document.getElementById('support').getAttribute('rel')).toContain('noopener');
+  });
+
+  it('asks about supporting development above the footer, with the button next to it', async () => {
+    await openPopup({});
+    const row = document.querySelector('.support-row');
+    expect(row.firstElementChild.textContent).toBe('Want to support development?');
+    expect(row.lastElementChild).toBe(document.getElementById('support'));
+    const footer = document.querySelector('footer');
+    expect(row.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(row.nextElementSibling).toBe(footer);
   });
 
   it('shows a drawn coffee cup icon in the button, with no emoji', async () => {
@@ -251,13 +290,18 @@ describe('the support button and links', () => {
     expect(button.textContent).not.toMatch(/[☀-➿\u{1F300}-\u{1FAFF}]/u);
   });
 
-  it('opens the What is new page from the version tag', async () => {
+  it('shows the name with the tagline below, and the version on the right of the header', async () => {
     await openPopup({});
-    const created = [];
-    chrome.tabs.create = async (tab) => created.push(tab);
-    document.getElementById('appVersion').click();
-    await flush();
-    expect(created).toEqual([{ url: 'changelog.html' }]);
+    const title = document.querySelector('header h1');
+    expect(title.textContent.trim()).toBe('X-Ray');
+    const version = document.getElementById('appVersion');
+    expect(version.textContent).toBe('v9.9');
+    expect(document.querySelector('header').lastElementChild).toBe(version);
+    expect(title.contains(version)).toBe(false);
+    const tagline = document.querySelector('header .tagline');
+    expect(tagline.textContent).toBe('for Twitter (X)');
+    expect(title.compareDocumentPosition(tagline) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(title.contains(tagline)).toBe(false);
   });
 
   it('warns and stays open when the tab cannot be opened', async () => {
@@ -271,5 +315,70 @@ describe('the support button and links', () => {
     expect(warn).toHaveBeenCalled();
     expect(window.close).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+describe('the popup layout', () => {
+  beforeEach(() => {
+    vi.spyOn(window, 'close').mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('has no intro note about tracking', async () => {
+    await openPopup({});
+    expect(document.querySelector('.note')).toBeNull();
+    expect(document.body.textContent).not.toContain('No tracking');
+  });
+
+  it('keeps the version in the header as plain text, not a link', async () => {
+    await openPopup({});
+    const version = document.getElementById('appVersion');
+    expect(version.tagName).toBe('SPAN');
+    expect(version.closest('a')).toBeNull();
+  });
+
+  it("has no What's New link and no text about it", async () => {
+    await openPopup({});
+    expect(document.getElementById('whatsNew')).toBeNull();
+    expect(document.body.textContent).not.toContain("What's New");
+    expect(document.querySelector('a[href="changelog.html"]')).toBeNull();
+  });
+
+  it('gives the wait choice and clear cache a card each, like Auto reveal', async () => {
+    await openPopup({});
+    const cards = [...document.querySelectorAll('main > .card')].map((card) => card.id);
+    expect(cards).toEqual(['autoCard', 'delayCard', 'cacheCard']);
+    expect(document.getElementById('autoCard').contains(document.getElementById('autoDelay'))).toBe(false);
+  });
+
+  it('has the wait label on the left, the dropdown on the right and a description below', async () => {
+    await openPopup({});
+    const row = document.querySelector('#delayCard .card-row');
+    expect(row.firstElementChild.textContent).toBe('Auto Lookup Cooldown');
+    expect(row.lastElementChild).toBe(document.getElementById('autoDelay'));
+    const note = document.getElementById('delayInfo');
+    expect(note.textContent).toBe('Time period between lookups to prevent rate limiting');
+    expect(document.getElementById('autoDelay').getAttribute('aria-describedby')).toBe('delayInfo');
+  });
+
+  it('dims the wait card while auto reveal is off and wakes it when it is on', async () => {
+    await openPopup({});
+    const card = document.getElementById('delayCard');
+    const toggle = document.getElementById('autoReveal');
+    const flip = async () => {
+      toggle.checked = !toggle.checked;
+      toggle.dispatchEvent(new Event('change'));
+      await flush();
+    };
+    expect(card.classList.contains('off')).toBe(true);
+    await flip();
+    expect(card.classList.contains('off')).toBe(false);
+    await flip();
+    expect(card.classList.contains('off')).toBe(true);
+  });
+
+  it('shows the footer text', async () => {
+    await openPopup({});
+    expect(document.querySelector('footer').textContent.trim()).toBe('Not affiliated with X');
   });
 });
