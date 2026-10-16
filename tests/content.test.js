@@ -230,6 +230,25 @@ describe('createSourceContent', () => {
     expect(el.querySelectorAll('svg')).toHaveLength(1);
   });
 
+  it('shows a store region once when it is the same as a region location', () => {
+    const el = render(createSourceContent('South Asia App Store', 'South Asia'));
+    expect(el.textContent).not.toMatch(/South Asia/);
+    expect(el.querySelectorAll('svg')).toHaveLength(1);
+  });
+
+  it('ignores capitals and extra spaces when comparing regions', () => {
+    const el = render(createSourceContent('south  asia Android', ' South Asia '));
+    expect(el.textContent).not.toMatch(/south/i);
+    expect(el.querySelectorAll('svg')).toHaveLength(1);
+  });
+
+  it('still shows a store region that differs from the location', () => {
+    expect(render(createSourceContent('South Asia App Store', 'India')).textContent).toContain('South Asia');
+    expect(render(createSourceContent('South Asia App Store', 'Southeast Asia')).textContent).toContain('South Asia');
+    expect(render(createSourceContent('South Asia App Store', '')).textContent).toContain('South Asia');
+    expect(render(createSourceContent('South Asia App Store', null)).textContent).toContain('South Asia');
+  });
+
   it('flags the store country when it differs from the location', () => {
     const el = render(createSourceContent('United States App Store', 'India'));
     expect(flagPicture(el)).toBe(flagImages.us);
@@ -716,7 +735,6 @@ describe('refreshing a result', () => {
     vi.useFakeTimers();
     clickIcon(pill);
     vi.advanceTimersByTime(10000);
-    vi.advanceTimersByTime(60000);
     clickIcon(pill);
     expect(pill.textContent.trim()).toBe('Locating...');
     vi.advanceTimersByTime(10000);
@@ -744,23 +762,23 @@ describe('refreshing a result', () => {
     expect(pill.classList.contains('loading')).toBe(false);
   });
 
-  it('allows one refresh a minute per account, and says so when it is too soon', async () => {
+  it('allows one refresh every 2 seconds per account, and says so when it is too soon', async () => {
     const pill = await resultFor('rf_limit');
     vi.useFakeTimers();
     clickIcon(pill);
     found('rf_limit', 'Chile', 'Web App');
-    vi.advanceTimersByTime(59000);
+    vi.advanceTimersByTime(1999);
     clickIcon(pill);
     expect(pill.classList.contains('loading')).toBe(false);
     expect(document.querySelector('[role="status"]').textContent).toBe('@rf_limit was just refreshed');
 
-    vi.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1);
     clickIcon(pill);
     expect(pill.textContent.trim()).toBe('Locating...');
     vi.advanceTimersByTime(10000);
   });
 
-  it('counts the minute for each account on its own', async () => {
+  it('counts the wait for each account on its own', async () => {
     const one = await resultFor('rf_sep_a');
     const two = await resultFor('rf_sep_b');
     clickIcon(one);

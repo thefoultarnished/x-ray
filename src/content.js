@@ -202,9 +202,12 @@ function createSourceContent(source, location) {
   const { code, name, rest } = splitLeadingCountry(sourceText(source));
   // The store's country is left out when it is the location the pill already shows.
   if (code && code !== countryCode(location)) content.append(createFlagImage(code, name));
+  // A store region named like the location the pill already shows is left out too.
+  const plain = (text) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+  const sameAsLocation = (text) => Boolean(location) && plain(text) === plain(location);
   rest.split(PLATFORM_WORDS).forEach((part, i) => {
     if (i % 2) content.append(createIcon(platformIcon(part)));
-    else if (part.trim()) content.append(part.trim());
+    else if (part.trim() && !sameAsLocation(part)) content.append(part.trim());
   });
   if (!content.hasChildNodes()) content.append('Unknown');
   return content;
@@ -722,8 +725,8 @@ function loadingTextFor(handle) {
 }
 
 // Looks an account up again, even though it has a result. The old result is kept until the new one arrives, and
-// comes back if no answer does. Once a minute per account, so a result cannot be asked for over and over.
-const REFRESH_COOLDOWN_MS = 60 * 1000;
+// comes back if no answer does. Two seconds between refreshes of one account, so a double click does not send two lookups.
+const REFRESH_COOLDOWN_MS = 2000;
 const lastRefresh = new Map();
 const refreshFallback = new Map();
 
