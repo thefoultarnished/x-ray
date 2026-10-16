@@ -10,9 +10,7 @@
   :root {
     color-scheme: dark;
     --bg: #0a0d12;
-    --surface: rgba(255, 255, 255, 0.05);
     --border: rgba(255, 255, 255, 0.1);
-    --border-soft: rgba(255, 255, 255, 0.07);
     --accent: #1d9bf0;
     --text: #f2f5f8;
     --text-2: #b4bdc9;
@@ -20,7 +18,6 @@
     --new: #a78bfa;
     --improved: #60a5fa;
     --fixed: #4ade80;
-    --radius: 16px;
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
 
@@ -29,11 +26,11 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    padding: 56px 24px;
+    padding: 32px 24px;
   }
 
   .container {
-    max-width: 680px;
+    max-width: 760px;
     margin: 0 auto;
   }
 
@@ -41,7 +38,7 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 44px;
+    margin-bottom: 26px;
   }
 
   .header img {
@@ -97,39 +94,42 @@
     transform: scale(0.97);
   }
 
+  .release + .release {
+    margin-top: 34px;
+  }
+
   .release-header {
     display: flex;
-    align-items: center;
+    align-items: baseline;
+    justify-content: space-between;
     gap: 14px;
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, var(--accent), transparent) 1;
   }
 
   .version-badge {
-    font-size: 20px;
+    font-size: 26px;
     font-weight: 800;
     color: #fff;
-    background: color-mix(in srgb, var(--accent) 35%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 80%, white);
-    padding: 4px 16px;
-    border-radius: 999px;
   }
 
   .release-date {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-3);
   }
 
   .lede {
     font-size: 14px;
     color: var(--text-2);
-    margin-bottom: 24px;
+    margin-bottom: 14px;
   }
 
   .section {
     --tone: var(--new);
-    margin-bottom: 28px;
+    margin-bottom: 16px;
+    padding-left: 14px;
   }
 
   .section-new { --tone: var(--new); }
@@ -143,43 +143,34 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--tone);
-    background: color-mix(in srgb, var(--tone) 14%, transparent);
-    border: 1px solid color-mix(in srgb, var(--tone) 35%, transparent);
-    padding: 5px 14px;
-    border-radius: 999px;
-    margin-bottom: 12px;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    margin-bottom: 8px;
   }
 
-  .items {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
 
   .item {
     display: flex;
     gap: 12px;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-soft);
+    padding: 7px 2px;
   }
-
-  .item:last-child { border-bottom: none; }
 
   .item::before {
     content: "";
     flex-shrink: 0;
     width: 7px;
     height: 7px;
-    margin-top: 8px;
+    margin-top: 7px;
     border-radius: 50%;
-    background: var(--tone);
+    background: #fff;
   }
 
   .item-text {
     font-size: 14px;
     color: var(--text-2);
-    line-height: 1.6;
+    line-height: 1.5;
+    text-align: justify;
   }
 
   .item-text strong {
@@ -197,7 +188,7 @@
   .divider {
     border: none;
     border-top: 1px solid var(--border);
-    margin: 44px 0;
+    margin: 26px 0;
   }
 
   .footer {
@@ -215,7 +206,7 @@
   .footer a:focus-visible { text-decoration: underline; }
 
   @media (max-width: 520px) {
-    body { padding: 40px 18px 80px; }
+    body { padding: 24px 18px 48px; }
     .header { flex-wrap: wrap; }
     .header-links { margin-left: 0; justify-content: flex-start; }
   }
@@ -345,8 +336,6 @@
         </div>
       </div>
   </div>
-
-  <hr class="divider">
 
   <!-- v1.0 -->
   <div class="release">
