@@ -11,10 +11,10 @@
 ## <img src="screenshots/icons/camera.svg" width="18" height="18" align="baseline"> Screenshots
 
 <div align="center">
-  <img src="screenshots/hidden.png" alt="A post with the X-Ray pin next to the menu" width="800">
+  <img src="screenshots/hiddenlocation.png" alt="A post with the X-Ray pin next to the menu" width="800">
   <p><em>A small pin appears next to the menu on every post. Click it to look the account up</em></p>
 
-  <img src="screenshots/revealed.png" alt="The pin turned into a location pill with a country flag and platform icon" width="800">
+  <img src="screenshots/revealedlocation.png" alt="The pin turned into a location pill with a country flag and platform icon" width="800">
   <p><em>The pin turns into the account's location, with its country flag and the platform it posts from</em></p>
 
   <img src="screenshots/menu.png" alt="The X-Ray popup with Auto reveal, cooldown and Clear cache" width="800">
