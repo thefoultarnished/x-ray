@@ -616,6 +616,167 @@ describe('accounts that hide their info', () => {
   });
 });
 
+describe('refreshing a result', () => {
+  afterEach(() => {
+    // Lets a lookup that is still running finish, so it cannot get in the way of the next test.
+    const running = document
+      .querySelector('iframe')
+      ?.getAttribute('src')
+      ?.match(/\/([A-Za-z0-9_]+)\/about/);
+    if (running) found(running[1], 'Peru', 'Web App');
+    removePosts();
+  });
+
+  const state = (el) => ({
+    cls: el.className,
+    text: el.textContent.trim(),
+    clickable: el.style.pointerEvents !== 'none',
+  });
+
+  const resultFor = async (handle, location = 'Peru', source = 'Web App') => {
+    const pin = await addPost(handle);
+    userClick(pin);
+    found(handle, location, source);
+    return pin;
+  };
+  const click = (pill, over = {}) =>
+    pill.onclick({ isTrusted: true, detail: 1, preventDefault() {}, stopPropagation() {}, ...over });
+  const clickIcon = (pill) => click(pill, { target: pill.querySelector('.xray-refresh') });
+  const frameSrc = () => document.querySelector('iframe')?.getAttribute('src') ?? '';
+
+  it('puts a refresh icon at the end of every result pill, hidden ones too, and never on a pin', async () => {
+    const pill = await resultFor('rf_icon');
+    expect(pill.lastElementChild.className).toBe('xray-refresh');
+    expect(pill.lastElementChild.getAttribute('aria-hidden')).toBe('true');
+    expect(pill.querySelector('.xray-source')).not.toBeNull();
+
+    const hidden = await addPost('rf_hidden');
+    userClick(hidden);
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: 'https://x.com',
+        source: lookupFrame(),
+        data: { type: 'X_LOCATION_FOUND', handle: 'rf_hidden', hidden: true },
+      })
+    );
+    expect(hidden.lastElementChild.className).toBe('xray-refresh');
+
+    const pin = await addPost('rf_pin');
+    expect(pin.querySelector('.xray-refresh')).toBeNull();
+  });
+
+  it('looks the account up again when the icon is clicked, keeping the pill out of reach meanwhile', async () => {
+    const pill = await resultFor('rf_again');
+    clickIcon(pill);
+    expect(state(pill)).toMatchObject({ cls: 'xray-pill loading', text: 'Locating...', clickable: false });
+    expect(frameSrc()).toContain('/rf_again/about');
+  });
+
+  it('shows the new result and saves it over the old one', async () => {
+    const pill = await resultFor('rf_new', 'Peru', 'Web App');
+    clickIcon(pill);
+    found('rf_new', 'Chile', 'iPhone');
+    await settle();
+    expect(pill.textContent).toContain('Chile');
+    expect(pill.textContent).not.toContain('Peru');
+    expect(saved().rf_new).toMatchObject({ loc: 'Chile', src: 'iPhone' });
+  });
+
+  it('refreshes every post by the same account, with one lookup', async () => {
+    const first = await resultFor('rf_many');
+    const article = document.createElement('article');
+    article.dataset.testid = 'tweet';
+    article.innerHTML = `<div data-testid="User-Name"><a href="/rf_many">rf_many</a></div><div><div data-testid="caret"></div></div>`;
+    document.body.append(article);
+    await vi.waitFor(() => expect(article.querySelector('.xray-pill')).not.toBeNull());
+    const second = article.querySelector('.xray-pill');
+
+    clickIcon(first);
+    expect([first, second].map((pill) => pill.textContent.trim())).toEqual(['Locating...', 'Locating...']);
+    found('rf_many', 'Chile', 'Web App');
+    expect([first, second].every((pill) => pill.textContent.includes('Chile'))).toBe(true);
+  });
+
+  it('gives the old result back, not Not available, when no answer comes', async () => {
+    const pill = await resultFor('rf_fail', 'Peru', 'Web App');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.useFakeTimers();
+    clickIcon(pill);
+    vi.advanceTimersByTime(10000);
+    expect(pill.className).toBe('xray-pill');
+    expect(pill.textContent).toContain('Peru');
+    expect(pill.querySelector('.xray-refresh')).not.toBeNull();
+    expect(document.querySelector('[role="status"]').textContent).toBe('Could not refresh @rf_fail');
+    warn.mockRestore();
+  });
+
+  it('keeps the account refreshable after a failed refresh', async () => {
+    const pill = await resultFor('rf_retry');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.useFakeTimers();
+    clickIcon(pill);
+    vi.advanceTimersByTime(10000);
+    vi.advanceTimersByTime(60000);
+    clickIcon(pill);
+    expect(pill.textContent.trim()).toBe('Locating...');
+    vi.advanceTimersByTime(10000);
+    warn.mockRestore();
+  });
+
+  it('does nothing for a click on the rest of the pill', async () => {
+    const pill = await resultFor('rf_body');
+    click(pill, { target: pill.querySelector('.xray-source') });
+    click(pill, { target: pill });
+    expect(pill.className).toContain('xray-pill');
+    expect(pill.classList.contains('loading')).toBe(false);
+    expect(frameSrc()).toBe('');
+  });
+
+  it('refreshes on Enter or Space, which reach the pill as a click with no pointer', async () => {
+    const pill = await resultFor('rf_key');
+    click(pill, { detail: 0, target: pill });
+    expect(pill.textContent.trim()).toBe('Locating...');
+  });
+
+  it('ignores a refresh click that a page script made up', async () => {
+    const pill = await resultFor('rf_fake');
+    pill.onclick({ isTrusted: false, detail: 0, target: pill.querySelector('.xray-refresh') });
+    expect(pill.classList.contains('loading')).toBe(false);
+  });
+
+  it('allows one refresh a minute per account, and says so when it is too soon', async () => {
+    const pill = await resultFor('rf_limit');
+    vi.useFakeTimers();
+    clickIcon(pill);
+    found('rf_limit', 'Chile', 'Web App');
+    vi.advanceTimersByTime(59000);
+    clickIcon(pill);
+    expect(pill.classList.contains('loading')).toBe(false);
+    expect(document.querySelector('[role="status"]').textContent).toBe('@rf_limit was just refreshed');
+
+    vi.advanceTimersByTime(1000);
+    clickIcon(pill);
+    expect(pill.textContent.trim()).toBe('Locating...');
+    vi.advanceTimersByTime(10000);
+  });
+
+  it('counts the minute for each account on its own', async () => {
+    const one = await resultFor('rf_sep_a');
+    const two = await resultFor('rf_sep_b');
+    clickIcon(one);
+    found('rf_sep_a', 'Chile', 'Web App');
+    clickIcon(two);
+    expect(two.textContent.trim()).toBe('Locating...');
+  });
+
+  it('closes the info card while it looks again', async () => {
+    const pill = await resultFor('rf_card');
+    pill.onmouseenter();
+    clickIcon(pill);
+    expect(document.querySelector('.xray-hover-card').classList.contains('show')).toBe(false);
+  });
+});
+
 describe('answers that are not from the lookup', () => {
   afterEach(removePosts);
 

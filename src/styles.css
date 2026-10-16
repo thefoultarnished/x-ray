@@ -287,6 +287,31 @@
   border-left-color: rgba(var(--xray-android-rgb), 0.25);
 }
 
+.xray-refresh {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1.5px solid rgba(var(--xray-accent-rgb), 0.25);
+  align-self: stretch;
+  opacity: 0.75;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.xray-pill:hover .xray-refresh,
+.xray-pill:focus-visible .xray-refresh {
+  opacity: 1;
+}
+
+.xray-pill.android-device .xray-refresh {
+  border-left-color: rgba(var(--xray-android-rgb), 0.25);
+}
+
+.xray-pill.hidden-location .xray-refresh {
+  border-left-color: rgba(var(--xray-hidden-rgb), 0.25);
+}
+
 .xray-pill.hidden-location {
   background: linear-gradient(
     135deg,

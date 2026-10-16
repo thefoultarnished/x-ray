@@ -1,6 +1,7 @@
 const ICONS = {
   PIN: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17.5px; height:17.5px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`,
   GLOBE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`,
+  REFRESH: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:11px; height:11px;"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg>`,
   LOCK: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px;"><rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`,
 };
 
@@ -149,6 +150,15 @@ function createBadge(markup, extraClass = '') {
 const createGlobe = () => createBadge(ICONS.GLOBE);
 const createLock = () => createBadge(ICONS.LOCK, 'xray-lock');
 
+// The part of a result pill that looks the account up again. A click on it is told apart from a click on the pill.
+function createRefresh() {
+  const refresh = document.createElement('span');
+  refresh.className = 'xray-refresh';
+  refresh.setAttribute('aria-hidden', 'true');
+  refresh.append(createIcon(ICONS.REFRESH));
+  return refresh;
+}
+
 function createFlagImage(code, alt) {
   const img = document.createElement('img');
   img.src = FLAG_IMAGES[code];
@@ -223,12 +233,16 @@ function renderPill(btn, location, source) {
     sourceText.append(createSourceContent(source, location));
     btn.append(sourceText);
   }
+  btn.append(createRefresh());
+  btn.setAttribute('aria-description', 'Press Enter to look it up again');
 
   // Replaces the pin's lookup click, and keeps a click on the pill from reaching X (it would open the profile).
+  // The refresh icon looks the account up again; so does Enter or Space on the focused pill (a click with no pointer).
   btn.onclick = (e) => {
     if (!e.isTrusted) return;
     e.preventDefault();
     e.stopPropagation();
+    if (e.detail === 0 || e.target?.closest?.('.xray-refresh')) refreshResult(btn.dataset.handle);
   };
   btn.onmouseenter = btn.onfocus = () => showHoverCard(btn, location, source);
   btn.onmouseleave = btn.onblur = () => hideHoverCard();
@@ -387,6 +401,7 @@ window.addEventListener('message', (event) => {
   const location = hidden ? HIDDEN_TEXT : asText(event.data.location);
   const source = hidden ? '' : asText(event.data.source);
 
+  refreshFallback.delete(handle);
   saveToCache(handle, location, source);
   updateToLocationText(handle, location, source);
   noteLookupResult(true, handle);
@@ -706,7 +721,26 @@ function loadingTextFor(handle) {
   return requestQueueSet.has(handle) ? QUEUED_TEXT : null;
 }
 
-function queueRequest(handle, { auto = false } = {}) {
+// Looks an account up again, even though it has a result. The old result is kept until the new one arrives, and
+// comes back if no answer does. Once a minute per account, so a result cannot be asked for over and over.
+const REFRESH_COOLDOWN_MS = 60 * 1000;
+const lastRefresh = new Map();
+const refreshFallback = new Map();
+
+function refreshResult(handle) {
+  if (typeof handle !== 'string' || !HANDLE_PATTERN.test(handle) || !locationMap.has(handle)) return;
+  if (Date.now() - (lastRefresh.get(handle) ?? -Infinity) < REFRESH_COOLDOWN_MS) {
+    announce(`@${handle} was just refreshed`);
+    return;
+  }
+  lastRefresh.set(handle, Date.now());
+  refreshFallback.set(handle, locationMap.get(handle));
+  locationMap.delete(handle);
+  hideHoverCard();
+  queueRequest(handle, { refresh: true });
+}
+
+function queueRequest(handle, { auto = false, refresh = false } = {}) {
   if (locationMap.has(handle)) return;
   if (auto) autoHandles.add(handle);
 
@@ -716,7 +750,11 @@ function queueRequest(handle, { auto = false } = {}) {
   const isFirst = !isProcessingQueue && requestQueue.every((queued) => autoHandles.has(queued));
   const initialText = inProgress ?? (isFirst && !auto ? LOADING_TEXT : QUEUED_TEXT);
 
-  document.querySelectorAll(`.xray-pin[data-handle="${handle}"]`).forEach((btn) => showLoading(btn, initialText));
+  // A refresh also turns the account's result pills back into loading pills.
+  const targets = refresh
+    ? `.xray-pin[data-handle="${handle}"], .xray-pill:not(.loading):not(.unavailable)[data-handle="${handle}"]`
+    : `.xray-pin[data-handle="${handle}"]`;
+  document.querySelectorAll(targets).forEach((btn) => showLoading(btn, initialText));
 
   if (!autoHandles.has(handle)) announce(`Looking up @${handle}`);
   if (inProgress) return;
@@ -769,8 +807,17 @@ function loadAboutPage(handle) {
 
   lookupTimer = setTimeout(() => {
     console.warn(`[X-Ray] No location data for @${handle} after ${LOOKUP_TIMEOUT_MS / 1000}s`);
-    document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
-    if (!autoHandles.has(handle)) announce(`Not available for @${handle}`);
+    const previous = refreshFallback.get(handle);
+    refreshFallback.delete(handle);
+    if (previous) {
+      // A refresh that got no answer gives the old result back.
+      locationMap.set(handle, previous);
+      updateToLocationText(handle, previous.loc, previous.src);
+      announce(`Could not refresh @${handle}`);
+    } else {
+      document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach(showNotAvailable);
+      if (!autoHandles.has(handle)) announce(`Not available for @${handle}`);
+    }
     autoHandles.delete(handle);
     noteLookupResult(false, handle);
     finishLookup();
