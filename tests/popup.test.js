@@ -189,7 +189,7 @@ describe('the auto reveal controls', () => {
     const warning = document.getElementById('autoWarning');
     expect(info.textContent).not.toContain('rate limit');
     expect(warning.textContent.trim()).toBe(
-      'Warning - X may rate limit or flag your account for this. Use it at your own risk.'
+      'X may rate limit or flag accounts for frequent location checks. Enable at your own risk.'
     );
     expect(warning.classList.contains('warning')).toBe(true);
     expect(info.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -426,7 +426,7 @@ describe('the popup layout', () => {
     expect(icon.getAttribute('aria-hidden')).toBe('true');
     expect(warning.firstElementChild).toBe(icon);
     expect(warning.textContent.trim()).toBe(
-      'Warning - X may rate limit or flag your account for this. Use it at your own risk.'
+      'X may rate limit or flag accounts for frequent location checks. Enable at your own risk.'
     );
   });
 
