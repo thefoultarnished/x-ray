@@ -11,11 +11,14 @@
 ## <img src="screenshots/icons/camera.svg" width="18" height="18" align="baseline"> Screenshots
 
 <div align="center">
-  <img src="screenshots/s1.png" alt="X-Ray Extension in Action" width="800">
-  <p><em>X-Ray seamlessly integrates into Twitter/X with click-to-reveal location icons</em></p>
-  
-  <img src="screenshots/s2.png" alt="Location and Device Details" width="800">
-  <p><em>Instantly see user location with country flags and device platform information</em></p>
+  <img src="screenshots/hidden.png" alt="A post with the X-Ray pin next to the menu" width="800">
+  <p><em>A small pin appears next to the menu on every post. Click it to look the account up</em></p>
+
+  <img src="screenshots/revealed.png" alt="The pin turned into a location pill with a country flag and platform icon" width="800">
+  <p><em>The pin turns into the account's location, with its country flag and the platform it posts from</em></p>
+
+  <img src="screenshots/menu.png" alt="The X-Ray popup with Auto reveal, cooldown and Clear cache" width="800">
+  <p><em>The toolbar popup: turn on Auto reveal, pick the wait between lookups and clear saved records</em></p>
 </div>
 
 ---
