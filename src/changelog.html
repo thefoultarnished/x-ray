@@ -94,13 +94,29 @@
     transform: scale(0.97);
   }
 
+  .release {
+    padding: 20px 22px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+
   .release + .release {
-    margin-top: 34px;
+    margin-top: 18px;
+  }
+
+  .release:not([open]) { padding-block: 12px; }
+
+  .release:not([open]) > .release-header {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-image: none;
+    border-bottom: 0;
   }
 
   .release-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 14px;
     margin-bottom: 10px;
@@ -112,6 +128,9 @@
   }
 
   .release-header::-webkit-details-marker { display: none; }
+
+  .release-header:hover .version-badge,
+  .release-header:hover .release-date { color: var(--accent); }
 
   .release-header:focus-visible {
     outline: 2px solid var(--accent);
@@ -130,7 +149,7 @@
     transition: transform 0.15s ease;
   }
 
-  .release[open] > .release-header::after { transform: translateY(1px) rotate(-135deg); }
+  .release[open] > .release-header::after { transform: translateY(3px) rotate(-135deg); }
 
   .latest-tag {
     margin-left: 10px;
@@ -175,27 +194,46 @@
   .section-fixed { --tone: var(--fixed); }
 
   .section-title {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    line-height: 1;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--tone);
-    padding: 3px 11px;
+    padding: 7px 11px 5px 12px;
     border-radius: 7px;
     background: color-mix(in srgb, var(--tone) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
     margin-bottom: 8px;
   }
 
+  .section-title::before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    background: currentColor;
+    mask: var(--icon) center / contain no-repeat;
+  }
 
-  .items { padding-left: 8px; }
+  .section-new { --icon: url("assets/section-new.svg"); }
+  .section-improved { --icon: url("assets/section-improved.svg"); }
+  .section-fixed { --icon: url("assets/section-fixed.svg"); }
+
 
   .item {
     display: flex;
     gap: 12px;
-    padding: 7px 2px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    transition: background 0.15s ease;
   }
+
+  .item:hover { background: rgba(255, 255, 255, 0.04); }
 
   .item::before {
     content: "";
