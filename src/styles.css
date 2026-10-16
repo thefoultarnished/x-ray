@@ -54,6 +54,16 @@
   }
 }
 
+@keyframes xray-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 @keyframes xray-shine {
   0% {
     background-position: 200% center;
@@ -478,5 +488,16 @@
   .xray-hover-card {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Nothing moves for people who asked for less motion, but "Locating..." still fades gently so it looks alive. */
+@media (prefers-reduced-motion: reduce) {
+  .xray-pill.loading .loading-text::before {
+    display: none;
+  }
+
+  .xray-pill.loading .loading-text {
+    animation: xray-breathe 2.4s ease-in-out infinite;
   }
 }
