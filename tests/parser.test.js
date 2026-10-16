@@ -5,9 +5,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 let readJson;
 let findAndSendLocation;
+let isAboutAnswer;
 
 beforeAll(() => {
-  ({ readJson, findAndSendLocation } = require('../src/parser.js'));
+  ({ readJson, findAndSendLocation, isAboutAnswer } = require('../src/parser.js'));
 });
 
 // A stand-in for a finished request.
@@ -107,5 +108,65 @@ describe('findAndSendLocation', () => {
     findAndSendLocation([{ unrelated: 1 }, [{ screen_name: 'deep', about_profile: { account_based_in: 'Kenya' } }]]);
     await settle();
     expect(received).toMatchObject([{ handle: 'deep', location: 'Kenya' }]);
+  });
+
+  // What X sends for an account that hides its About details.
+  const hiddenAnswer = (handle = 'quiet') => ({
+    data: {
+      result: {
+        about_profile: { learn_more_url: 'https://help.example/verified', location_accurate: true },
+        core: { screen_name: handle },
+      },
+    },
+  });
+
+  it('says the account is hidden when the About answer holds no location or app', async () => {
+    findAndSendLocation(hiddenAnswer(), true);
+    await settle();
+    expect(received).toEqual([
+      { type: 'X_LOCATION_FOUND', handle: 'quiet', location: undefined, source: undefined, hidden: true },
+    ]);
+  });
+
+  it('does not call an account hidden from an answer that is not the About answer', async () => {
+    findAndSendLocation(hiddenAnswer());
+    findAndSendLocation(hiddenAnswer(), false);
+    await settle();
+    expect(received).toEqual([]);
+  });
+
+  it('does not call an account hidden when the About answer has a location or an app', async () => {
+    findAndSendLocation({ core: { screen_name: 'a' }, about_profile: { account_based_in: 'Peru' } }, true);
+    findAndSendLocation({ core: { screen_name: 'b' }, about_profile: { source: 'iOS' } }, true);
+    await settle();
+    expect(received).toHaveLength(2);
+    expect(received.some((message) => message.hidden)).toBe(false);
+  });
+
+  it('says nothing when the About answer has no profile at all', async () => {
+    findAndSendLocation({ data: { user: { core: { screen_name: 'gone' } } } }, true);
+    findAndSendLocation({ errors: [{ code: 88 }] }, true);
+    await settle();
+    expect(received).toEqual([]);
+  });
+});
+
+describe('isAboutAnswer', () => {
+  it('is true only for the About answer, with or without a query string', () => {
+    expect(isAboutAnswer('https://x.com/i/api/graphql/abc123/AboutAccountQuery')).toBe(true);
+    expect(isAboutAnswer('https://x.com/i/api/graphql/abc123/AboutAccountQuery?variables=%7B%7D')).toBe(true);
+  });
+
+  it('is false for other answers, odd names and missing addresses', () => {
+    for (const url of [
+      'https://x.com/i/api/graphql/abc123/UserByScreenName',
+      'https://x.com/i/api/graphql/abc123/AboutAccountQueryExtra',
+      'https://x.com/AboutAccountQuery/other',
+      '',
+      undefined,
+      null,
+    ]) {
+      expect(isAboutAnswer(url)).toBe(false);
+    }
   });
 });

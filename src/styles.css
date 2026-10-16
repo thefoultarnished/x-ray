@@ -5,6 +5,8 @@
   --xray-accent-hover: #40b3ff;
   --xray-android: #34a853;
   --xray-android-rgb: 52, 168, 83;
+  --xray-hidden: #f4725f;
+  --xray-hidden-rgb: 244, 114, 95;
   --xray-muted: #71767b;
   --xray-muted-bg: rgba(113, 118, 123, 0.12);
   --xray-muted-border: rgba(113, 118, 123, 0.25);
@@ -285,6 +287,49 @@
   border-left-color: rgba(var(--xray-android-rgb), 0.25);
 }
 
+.xray-pill.hidden-location {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--xray-hidden-rgb), 0.12) 0%,
+    rgba(var(--xray-hidden-rgb), 0.08) 50%,
+    rgba(var(--xray-hidden-rgb), 0.12) 100%
+  );
+  background-size: 200% 200%;
+  color: var(--xray-hidden);
+  border-color: rgba(var(--xray-hidden-rgb), 0.3);
+  box-shadow:
+    0 0 0 1px rgba(var(--xray-hidden-rgb), 0.1),
+    0 1px 3px rgba(var(--xray-hidden-rgb), 0.08);
+}
+
+.xray-pill.hidden-location:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--xray-hidden-rgb), 0.18) 0%,
+    rgba(var(--xray-hidden-rgb), 0.12) 50%,
+    rgba(var(--xray-hidden-rgb), 0.18) 100%
+  );
+  background-size: 200% 200%;
+  animation: xray-gradient-shift 3s ease infinite;
+  border-color: rgba(var(--xray-hidden-rgb), 0.45);
+  box-shadow:
+    0 0 0 1px rgba(var(--xray-hidden-rgb), 0.2),
+    0 2px 8px rgba(var(--xray-hidden-rgb), 0.2);
+}
+
+.xray-pill.hidden-location::before {
+  background: conic-gradient(
+    from var(--xray-angle),
+    transparent 0%,
+    rgba(var(--xray-hidden-rgb), 0) 20%,
+    rgba(var(--xray-hidden-rgb), 0.4) 40%,
+    rgba(var(--xray-hidden-rgb), 0.8) 50%,
+    rgba(var(--xray-hidden-rgb), 0.4) 60%,
+    rgba(var(--xray-hidden-rgb), 0) 80%,
+    transparent 100%
+  );
+}
+
 .xray-pill.loading {
   background: linear-gradient(
     135deg,
@@ -387,6 +432,14 @@
     0 2px 12px rgba(var(--xray-android-rgb), 0.12);
 }
 
+.xray-hover-card.hidden-location {
+  border-color: rgba(var(--xray-hidden-rgb), 0.3);
+  box-shadow:
+    0 8px 32px rgba(var(--xray-black-rgb), 0.4),
+    0 0 0 1px rgba(var(--xray-hidden-rgb), 0.1),
+    0 2px 12px rgba(var(--xray-hidden-rgb), 0.12);
+}
+
 .xray-hover-card.pos-left {
   transform: translateX(4px);
 }
@@ -441,6 +494,11 @@
   opacity: 0.7;
 }
 
+.xray-hover-card.hidden-location .xray-lock {
+  color: var(--xray-hidden);
+  opacity: 1;
+}
+
 .xray-hover-card .xray-globe svg {
   width: 12.5px;
   height: 12.5px;
@@ -464,6 +522,11 @@
   border-bottom-color: rgba(var(--xray-android-rgb), 0.3);
 }
 
+.xray-hover-card.hidden-location::before {
+  border-left-color: rgba(var(--xray-hidden-rgb), 0.3);
+  border-bottom-color: rgba(var(--xray-hidden-rgb), 0.3);
+}
+
 .xray-hover-card.pos-left::before {
   left: auto;
   right: -6px;
@@ -476,6 +539,11 @@
 .xray-hover-card.android-device.pos-left::before {
   border-top-color: rgba(var(--xray-android-rgb), 0.3);
   border-right-color: rgba(var(--xray-android-rgb), 0.3);
+}
+
+.xray-hover-card.hidden-location.pos-left::before {
+  border-top-color: rgba(var(--xray-hidden-rgb), 0.3);
+  border-right-color: rgba(var(--xray-hidden-rgb), 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {

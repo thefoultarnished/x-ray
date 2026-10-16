@@ -1,6 +1,7 @@
 const ICONS = {
   PIN: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17.5px; height:17.5px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`,
   GLOBE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`,
+  LOCK: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px;"><rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`,
 };
 
 const PLATFORM_ICONS = {
@@ -138,12 +139,15 @@ function createIcon(markup) {
   return template.content.firstElementChild;
 }
 
-function createGlobe() {
-  const globe = document.createElement('span');
-  globe.className = 'xray-globe';
-  globe.append(createIcon(ICONS.GLOBE));
-  return globe;
+function createBadge(markup, extraClass = '') {
+  const badge = document.createElement('span');
+  badge.className = `xray-globe ${extraClass}`.trim();
+  badge.append(createIcon(markup));
+  return badge;
 }
+
+const createGlobe = () => createBadge(ICONS.GLOBE);
+const createLock = () => createBadge(ICONS.LOCK, 'xray-lock');
 
 function createFlagImage(code, alt) {
   const img = document.createElement('img');
@@ -202,13 +206,17 @@ function describeResult(location, source) {
   return app ? `${location || 'Unknown'}, ${app}` : location || 'Unknown';
 }
 
+// The pill and card of an account that shows nothing say Hidden, in their own color.
+const isHiddenResult = (location, source) => location === HIDDEN_TEXT && !source;
+
 function renderPill(btn, location, source) {
   const isAndroid = Boolean(source) && /android|play store/i.test(source);
-  btn.className = isAndroid ? 'xray-pill android-device' : 'xray-pill';
+  const isHidden = isHiddenResult(location, source);
+  btn.className = isHidden ? 'xray-pill hidden-location' : isAndroid ? 'xray-pill android-device' : 'xray-pill';
   btn.setAttribute('aria-label', `Location: ${describeResult(location, source)}`);
   // Clears the click block left over from the loading state.
   btn.style.pointerEvents = '';
-  btn.replaceChildren(createFlag(location), location || 'Unknown Loc');
+  btn.replaceChildren(isHidden ? createLock() : createFlag(location), location || 'Unknown Loc');
   if (source) {
     const sourceText = document.createElement('span');
     sourceText.className = 'xray-source';
@@ -246,6 +254,8 @@ let lookupTimer = null;
 const LOADING_TEXT = 'Locating...';
 const QUEUED_TEXT = 'Queued...';
 const NOT_AVAILABLE_TEXT = 'Not available';
+// Shown for an account whose About page holds no location or app: X answered, there is just nothing to show.
+const HIDDEN_TEXT = 'Hidden';
 const LOOKUP_TIMEOUT_MS = 10000;
 const NOT_AVAILABLE_MS = 3000;
 // Pause before the next queued lookup starts.
@@ -373,8 +383,9 @@ window.addEventListener('message', (event) => {
   if (!isLookupAnswer(event)) return;
   // Use the name as written on the page, so the pills for this account are found.
   const handle = busyHandle;
-  const location = asText(event.data.location);
-  const source = asText(event.data.source);
+  const hidden = event.data.hidden === true;
+  const location = hidden ? HIDDEN_TEXT : asText(event.data.location);
+  const source = hidden ? '' : asText(event.data.source);
 
   saveToCache(handle, location, source);
   updateToLocationText(handle, location, source);
@@ -391,6 +402,9 @@ window.addEventListener('message', (event) => {
 // Failed lookups in a row before auto reveal pauses; X most likely started limiting us.
 const AUTO_FAILURES_BEFORE_PAUSE = 5;
 const AUTO_PAUSE_MS = 5 * 60 * 1000;
+// After scrolling away, the new view waits this long before its first lookup, so a fast scroll sends no request for
+// every post it passes. Another lookup given up in the meantime starts the wait again.
+const SCROLL_SETTLE_MS = 500;
 // Most automatic lookups in line at once, counting the one running.
 const AUTO_QUEUE_MAX = 20;
 let autoReveal = SETTING_DEFAULTS[SETTINGS.AUTO_REVEAL];
@@ -442,6 +456,7 @@ function syncAutoReveal() {
     pinObserver?.disconnect();
     pinObserver = null;
     visiblePins.clear();
+    previousWanted = new Set();
     dropAutoQueued();
     return;
   }
@@ -469,31 +484,36 @@ function observePin(btn) {
 // True when nothing stops this account from being asked for.
 const isFreeToAsk = (handle) => !locationMap.has(handle) && !unavailableHandles.has(handle) && !loadingTextFor(handle);
 
-// The post just above and the one just below the posts on screen, so their result is ready by the time you
-// scroll to them. Only the next post counts, never further, so lookups cannot creep down the feed.
+// Posts above and below the posts on screen that are looked up ahead of time.
+const NEIGHBOURS_EACH_WAY = 2;
+
+// The posts just above and just below the posts on screen, nearest first, so their result is ready by the time
+// you scroll to them. Only a few count, never further, so lookups cannot creep down the feed.
 function neighbourButtons() {
   const all = [...document.querySelectorAll('.xray-pin, .xray-pill')];
   const seen = all.flatMap((btn, index) => (visiblePins.has(btn) ? [index] : []));
   if (seen.length === 0) return [];
-  return [all[seen.at(-1) + 1], all[seen[0] - 1]].filter(Boolean);
+  const neighbours = [];
+  for (let step = 1; step <= NEIGHBOURS_EACH_WAY; step++) neighbours.push(all[seen.at(-1) + step], all[seen[0] - step]);
+  return neighbours.filter(Boolean);
 }
 
-// The accounts still to be asked for: the pins on screen from the top down, then the neighbours.
-function autoCandidates() {
+// The accounts to look up, in order: the posts on screen from the top down, then the neighbours.
+function autoOrder() {
   const tops = new Map();
   for (const btn of visiblePins) {
-    if (!btn.isConnected || !btn.classList.contains('xray-pin')) continue;
+    if (!btn.isConnected) continue;
     const handle = btn.dataset.handle;
-    if (!isFreeToAsk(handle)) continue;
     const top = btn.getBoundingClientRect().top;
     if (top < (tops.get(handle) ?? Infinity)) tops.set(handle, top);
   }
   const onScreen = [...tops].sort((a, b) => a[1] - b[1]).map(([handle]) => handle);
-  const neighbours = neighbourButtons()
-    .filter((btn) => btn.classList.contains('xray-pin') && isFreeToAsk(btn.dataset.handle))
-    .map((btn) => btn.dataset.handle);
+  const neighbours = neighbourButtons().map((btn) => btn.dataset.handle);
   return [...new Set([...onScreen, ...neighbours])];
 }
+
+// The accounts still to be asked for.
+const autoCandidates = () => autoOrder().filter(isFreeToAsk);
 
 const isAutoQueued = (handle) => autoHandles.has(handle) && requestQueueSet.has(handle);
 
@@ -509,7 +529,13 @@ function queueVisibleAuto() {
 }
 
 function refreshAuto() {
+  // Scrolling away gives up the old lookups, so the new view is looked up as soon as the scroll settles.
+  if (dropUnwantedAuto()) {
+    clearTimeout(autoTimer);
+    autoTimer = null;
+  }
   queueVisibleAuto();
+  sortAutoQueue();
   scheduleAuto();
 }
 
@@ -518,9 +544,37 @@ function autoMustWait() {
   return !autoReveal || document.hidden || Date.now() < Math.max(lastLookupEnd + autoDelayMs, autoPausedUntil);
 }
 
-// An account is still wanted while its post is on screen or is the next one above or below.
-const isWanted = (handle) =>
-  [...visiblePins, ...neighbourButtons()].some((btn) => btn.isConnected && btn.dataset.handle === handle);
+// The accounts whose post is on screen or is one of the next ones above or below.
+const wantedHandles = () =>
+  new Set([...visiblePins, ...neighbourButtons()].filter((btn) => btn.isConnected).map((btn) => btn.dataset.handle));
+
+const isWanted = (handle) => wantedHandles().has(handle);
+
+// What was wanted the last time, to tell a jump to a new part of the feed from ordinary scrolling.
+let previousWanted = new Set();
+
+// Gives up every automatic lookup whose post is out of range, the running one too.
+// Returns true after a jump: the running one or the one up next was given up and nothing wanted before is wanted
+// now, so the delay no longer applies. Ordinary scrolling keeps the chosen delay.
+function dropUnwantedAuto() {
+  const wanted = wantedHandles();
+  const jumped = ![...wanted].some((handle) => previousWanted.has(handle));
+  previousWanted = wanted;
+  const next = requestQueue[0];
+  const gaveUpNext = isAutoQueued(next) && !wanted.has(next);
+  for (const handle of requestQueue.filter(isAutoQueued)) if (!wanted.has(handle)) dropAutoQueued(handle);
+  const stoppedRunning = autoHandles.has(busyHandle) && !wanted.has(busyHandle);
+  if (stoppedRunning) {
+    const handle = busyHandle;
+    autoHandles.delete(handle);
+    document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach(restorePin);
+    finishLookup();
+  }
+  if (!jumped || (!stoppedRunning && !gaveUpNext)) return false;
+  // The new view waits only for the scroll to settle, not the whole delay.
+  lastLookupEnd = Date.now() - autoDelayMs + SCROLL_SETTLE_MS;
+  return true;
+}
 
 // Takes an automatic lookup out of line and gives its pins back.
 function dropAutoQueued(handle) {
@@ -532,6 +586,21 @@ function dropAutoQueued(handle) {
     autoHandles.delete(queued);
     document.querySelectorAll(`.xray-pill.loading[data-handle="${queued}"]`).forEach(restorePin);
   }
+}
+
+// Puts the automatic lookups still waiting in the order of the screen as it is now, since pins are reported
+// a few at a time while you scroll. The one up next says Locating, the rest say Queued.
+function sortAutoQueue() {
+  const order = autoOrder();
+  const rank = (handle) => (order.includes(handle) ? order.indexOf(handle) : order.length);
+  const waiting = requestQueue.filter(isAutoQueued).sort((a, b) => rank(a) - rank(b));
+  // Lookups the user asked for keep their places.
+  let next = 0;
+  requestQueue.forEach((handle, index) => {
+    if (isAutoQueued(handle)) requestQueue[index] = waiting[next++];
+  });
+  for (const handle of waiting) setLoadingText(handle, QUEUED_TEXT);
+  if (!isProcessingQueue && isAutoQueued(requestQueue[0])) setLoadingText(requestQueue[0], LOADING_TEXT);
 }
 
 // One timer at most. It waits out the chosen delay after the last lookup, and any pause.
@@ -546,6 +615,7 @@ function autoStep() {
   autoTimer = null;
   if (!autoReveal || document.hidden) return;
   queueVisibleAuto();
+  sortAutoQueue();
   processQueue();
 }
 
@@ -572,8 +642,7 @@ function finishLookup() {
   isProcessingQueue = false;
   lastLookupEnd = Date.now();
   // The next automatic lookup says so at once, even though it still waits out the cooldown.
-  const next = requestQueue[0];
-  if (next && autoHandles.has(next)) setLoadingText(next, LOADING_TEXT);
+  sortAutoQueue();
   scheduleAuto();
   if (!scraperFrame) return;
   if (requestQueue.length === 0) {
@@ -973,11 +1042,9 @@ function showHoverCard(btn, location, source) {
   hoverTarget = btn;
 
   const isAndroid = Boolean(source) && /android|play store/i.test(source);
-  if (isAndroid) {
-    card.classList.add('android-device');
-  } else {
-    card.classList.remove('android-device');
-  }
+  const isHidden = isHiddenResult(location, source);
+  card.classList.toggle('android-device', isAndroid);
+  card.classList.toggle('hidden-location', isHidden);
 
   let store = { code: null, name: '' };
   let sourcePlatform = '';
@@ -1004,7 +1071,7 @@ function showHoverCard(btn, location, source) {
   }
 
   card.replaceChildren(
-    createHoverRow('Based in', createFlag(location), location || 'Unknown'),
+    createHoverRow('Based in', isHidden ? createLock() : createFlag(location), location || 'Unknown'),
     createHoverRow(
       'Platform',
       store.code ? createFlagImage(store.code, store.name) : createGlobe(),

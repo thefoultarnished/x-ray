@@ -1,6 +1,8 @@
 (function () {
   const XHR = XMLHttpRequest.prototype;
   const send = XHR.send;
+  // True for the answer that holds everything X shows on the About page of an account.
+  const isAboutAnswer = (url) => /\/AboutAccountQuery(\?|$)/.test(url);
 
   if (window !== window.top) {
     XHR.send = function () {
@@ -8,7 +10,7 @@
         const data = readJson(this);
         if (!data) return;
         try {
-          findAndSendLocation(data);
+          findAndSendLocation(data, isAboutAnswer(this.responseURL));
         } catch (e) {
           console.debug('[X-Ray] Could not read a response:', e);
         }
@@ -29,13 +31,16 @@
     }
   }
 
-  function findAndSendLocation(obj) {
+  // `fromAbout` is true for X's own About answer. When it holds nothing to show (the account hides it), that is
+  // sent as hidden, so it is not mistaken for a lookup X never answered.
+  function findAndSendLocation(obj, fromAbout = false) {
     if (!obj || typeof obj !== 'object') return;
 
     if (obj.about_profile) {
       const location = obj.about_profile.account_based_in;
       const source = obj.about_profile.source;
-      if (location || source) {
+      const hidden = fromAbout && !location && !source;
+      if (location || source || hidden) {
         const handle = obj.core?.screen_name || obj.screen_name;
         window.top.postMessage(
           {
@@ -43,16 +48,17 @@
             handle: handle,
             location: location,
             source: source,
+            ...(hidden && { hidden: true }),
           },
           window.location.origin
         );
         return;
       }
     }
-    Object.values(obj).forEach((child) => findAndSendLocation(child));
+    Object.values(obj).forEach((child) => findAndSendLocation(child, fromAbout));
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { readJson, findAndSendLocation };
+    module.exports = { readJson, findAndSendLocation, isAboutAnswer };
   }
 })();
