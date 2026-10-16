@@ -1918,23 +1918,23 @@ describe('auto reveal', () => {
     expect(passed.className).toBe('xray-pin');
   });
 
-  it('asks for the account nearest the middle of the screen first', async () => {
+  it('asks for the account at the top of the screen first', async () => {
     const top = await addPost('auto_top');
     const middle = await addPost('auto_middle');
     middleAt(top, 50);
     middleAt(middle, window.innerHeight / 2 + 20);
     startClock();
     turnOn();
-    setAllVisible([top, middle]);
+    setAllVisible([middle, top]);
     await vi.advanceTimersByTimeAsync(0);
-    expect(frameSrc()).toContain('/auto_middle/about');
+    expect(frameSrc()).toContain('/auto_top/about');
   });
 
   it('waits the chosen time after a lookup before the next one', async () => {
     const first = await addPost('auto_first');
     const second = await addPost('auto_second');
-    middleAt(first, window.innerHeight / 2);
-    middleAt(second, 300);
+    middleAt(first, 300);
+    middleAt(second, window.innerHeight / 2);
     startClock();
     turnOn(5);
     setVisible(first);
@@ -1952,8 +1952,8 @@ describe('auto reveal', () => {
   it('uses a new delay as soon as the setting changes', async () => {
     const first = await addPost('auto_d1');
     const second = await addPost('auto_d2');
-    middleAt(first, window.innerHeight / 2);
-    middleAt(second, 300);
+    middleAt(first, 300);
+    middleAt(second, window.innerHeight / 2);
     startClock();
     turnOn(10);
     setVisible(first);
@@ -1968,8 +1968,8 @@ describe('auto reveal', () => {
   it('ignores a delay that is not one of the choices', async () => {
     const first = await addPost('auto_bad1');
     const second = await addPost('auto_bad2');
-    middleAt(first, window.innerHeight / 2);
-    middleAt(second, 300);
+    middleAt(first, 300);
+    middleAt(second, window.innerHeight / 2);
     startClock();
     turnOn(2);
     setVisible(first);
@@ -2083,10 +2083,9 @@ describe('auto reveal', () => {
     expect(pins.map(labelOf)).toEqual(['Locating...', 'Queued...', 'Queued...']);
 
     found('q_near', 'Peru', 'Web App');
-    await vi.advanceTimersByTimeAsync(2900);
-    expect(labelOf(pins[1])).toBe('Queued...');
-    await vi.advanceTimersByTimeAsync(100);
     expect(labelOf(pins[1])).toBe('Locating...');
+    expect(lookingUp()).toBe('');
+    await vi.advanceTimersByTimeAsync(3000);
     expect(lookingUp()).toBe('q_mid');
     expect(labelOf(pins[2])).toBe('Queued...');
 
@@ -2272,6 +2271,84 @@ describe('auto reveal', () => {
     await vi.advanceTimersByTimeAsync(60000);
     expect(lookingUp()).toBe('');
     expect(pins.map((pin) => pin.className)).toEqual(['xray-pin', 'xray-pin', 'xray-pin']);
+  });
+
+  it('looks up the post at the top of the screen first, then the ones below it', async () => {
+    const [top, middle, bottom] = await postsOf('ord_top', 'ord_mid', 'ord_bottom');
+    middleAt(top, 80);
+    middleAt(middle, window.innerHeight / 2);
+    middleAt(bottom, window.innerHeight - 60);
+    startClock();
+    turnOn(2);
+    // The browser can report them in any order.
+    setAllVisible([bottom, middle, top]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(lookingUp()).toBe('ord_top');
+    found('ord_top', 'Peru', 'Web App');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(lookingUp()).toBe('ord_mid');
+    found('ord_mid', 'Chile', 'Web App');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(lookingUp()).toBe('ord_bottom');
+  });
+
+  it('says Locating on the next pill as soon as one is revealed, and sends its request after the cooldown', async () => {
+    const [a, b, c] = await postsOf('lab_a', 'lab_b', 'lab_c');
+    middleAt(a, 100);
+    middleAt(b, 300);
+    middleAt(c, 500);
+    startClock();
+    turnOn(5);
+    setAllVisible([a, b, c]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect([a, b, c].map(labelOf)).toEqual(['Locating...', 'Queued...', 'Queued...']);
+
+    found('lab_a', 'Peru', 'Web App');
+    expect(labelOf(b)).toBe('Locating...');
+    expect(labelOf(c)).toBe('Queued...');
+    expect(lookingUp()).toBe('');
+
+    await vi.advanceTimersByTimeAsync(4900);
+    expect(lookingUp()).toBe('');
+    await vi.advanceTimersByTimeAsync(100);
+    expect(lookingUp()).toBe('lab_b');
+
+    found('lab_b', 'Chile', 'Web App');
+    expect(labelOf(c)).toBe('Locating...');
+    expect(lookingUp()).toBe('');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(lookingUp()).toBe('lab_c');
+  });
+
+  it('also says Locating on the next pill when a lookup gets no answer', async () => {
+    // A good answer first, so failures from earlier tests do not count towards a pause.
+    await resolved('lab_reset');
+    const [a, b] = await postsOf('lab_slow', 'lab_next');
+    middleAt(a, 100);
+    middleAt(b, 300);
+    startClock();
+    turnOn(5);
+    setAllVisible([a, b]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(labelOf(b)).toBe('Queued...');
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(labelOf(a)).toBe('Not available');
+    expect(labelOf(b)).toBe('Locating...');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(lookingUp()).toBe('lab_next');
+  });
+
+  it('keeps a pin that is not next in line on Queued', async () => {
+    const [a, b, c] = await postsOf('lab2_a', 'lab2_b', 'lab2_c');
+    middleAt(a, 100);
+    middleAt(b, 300);
+    middleAt(c, 500);
+    startClock();
+    turnOn(2);
+    setAllVisible([a, b, c]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(labelOf(b)).toBe('Queued...');
+    expect(labelOf(c)).toBe('Queued...');
   });
 
   it('pauses for five minutes after five lookups in a row get no answer', async () => {

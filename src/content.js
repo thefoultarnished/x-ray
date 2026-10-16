@@ -478,19 +478,17 @@ function neighbourButtons() {
   return [all[seen.at(-1) + 1], all[seen[0] - 1]].filter(Boolean);
 }
 
-// The accounts still to be asked for: the pins on screen, nearest the middle first, then the neighbours.
+// The accounts still to be asked for: the pins on screen from the top down, then the neighbours.
 function autoCandidates() {
-  const middle = window.innerHeight / 2;
-  const distances = new Map();
+  const tops = new Map();
   for (const btn of visiblePins) {
     if (!btn.isConnected || !btn.classList.contains('xray-pin')) continue;
     const handle = btn.dataset.handle;
     if (!isFreeToAsk(handle)) continue;
-    const rect = btn.getBoundingClientRect();
-    const distance = Math.abs((rect.top + rect.bottom) / 2 - middle);
-    if (distance < (distances.get(handle) ?? Infinity)) distances.set(handle, distance);
+    const top = btn.getBoundingClientRect().top;
+    if (top < (tops.get(handle) ?? Infinity)) tops.set(handle, top);
   }
-  const onScreen = [...distances].sort((a, b) => a[1] - b[1]).map(([handle]) => handle);
+  const onScreen = [...tops].sort((a, b) => a[1] - b[1]).map(([handle]) => handle);
   const neighbours = neighbourButtons()
     .filter((btn) => btn.classList.contains('xray-pin') && isFreeToAsk(btn.dataset.handle))
     .map((btn) => btn.dataset.handle);
@@ -573,6 +571,9 @@ function finishLookup() {
   busyHandle = null;
   isProcessingQueue = false;
   lastLookupEnd = Date.now();
+  // The next automatic lookup says so at once, even though it still waits out the cooldown.
+  const next = requestQueue[0];
+  if (next && autoHandles.has(next)) setLoadingText(next, LOADING_TEXT);
   scheduleAuto();
   if (!scraperFrame) return;
   if (requestQueue.length === 0) {
@@ -668,6 +669,7 @@ function processQueue() {
 
   const handle = requestQueue[0];
   if (autoHandles.has(handle) && autoMustWait()) {
+    setLoadingText(handle, LOADING_TEXT);
     scheduleAuto();
     return;
   }
@@ -678,15 +680,19 @@ function processQueue() {
   loadAboutPage(handle);
 }
 
+function setLoadingText(handle, text) {
+  document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach((pill) => {
+    const label = pill.querySelector('.loading-text');
+    label.textContent = text;
+    label.setAttribute('data-text', text);
+    pill.setAttribute('aria-label', text);
+  });
+}
+
 function loadAboutPage(handle) {
   busyHandle = handle;
 
-  document.querySelectorAll(`.xray-pill.loading[data-handle="${handle}"]`).forEach((pill) => {
-    const text = pill.querySelector('.loading-text');
-    text.textContent = LOADING_TEXT;
-    text.setAttribute('data-text', LOADING_TEXT);
-    pill.setAttribute('aria-label', LOADING_TEXT);
-  });
+  setLoadingText(handle, LOADING_TEXT);
 
   const iframe = getScraperFrame();
 
