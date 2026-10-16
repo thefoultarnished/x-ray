@@ -1,6 +1,6 @@
 # X-Ray for Twitter
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue?logo=google-chrome)](https://chrome.google.com/webstore)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue?logo=google-chrome)](https://chromewebstore.google.com/detail/x-ray-for-twitter-x-locat/feapjenbiiloombmcpmbhlfdpbebfchl)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.1-orange.svg)](src/manifest.json)
 
@@ -129,7 +129,7 @@ X-Ray's **click-to-reveal** approach means:
 ## <img src="screenshots/icons/download.svg" width="18" height="18" align="baseline"> Installation
 
 ### From Chrome Web Store (Recommended)
-1.  Visit the [Chrome Web Store](#) (link coming soon)
+1.  Visit the [Chrome Web Store](https://chromewebstore.google.com/detail/x-ray-for-twitter-x-locat/feapjenbiiloombmcpmbhlfdpbebfchl)
 2.  Click "Add to Chrome"
 3.  Confirm permissions
 4.  Done! Start using on Twitter/X
