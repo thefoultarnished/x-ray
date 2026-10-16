@@ -183,11 +183,15 @@
   }
 
   .item-text strong {
-    display: block;
     font-size: 15px;
     color: #fff;
     font-weight: 650;
-    margin-bottom: 2px;
+  }
+
+  .item-text strong::after {
+    content: ' - ';
+    font-weight: 400;
+    color: var(--text-2);
   }
 
   .divider {
@@ -237,28 +241,28 @@
       <span class="version-badge">v2.1</span>
       <span class="release-date">Oct 16, 2026</span>
     </div>
-    <p class="lede">Auto reveal keeps up when you scroll fast.</p>
+    <p class="lede">Refresh a single result, see accounts with no public location, and a smarter Auto reveal.</p>
+
+      <div class="section section-new">
+        <div class="section-title">New</div>
+        <div class="items">
+          <div class="item">
+            <span class="item-text"><strong>Refresh a result</strong>Saved results can go out of date. Click the refresh icon on a pill to look that account up again and update its saved result. If X does not answer, the old result stays.</span>
+          </div>
+          <div class="item">
+            <span class="item-text"><strong>Hidden locations</strong>When an account's location isn't known or public, you now get a coral Hidden pill with a lock instead of Not available. It is saved like any result and is not counted as a failed lookup.</span>
+          </div>
+        </div>
+      </div>
 
       <div class="section section-improved">
         <div class="section-title">Improved</div>
         <div class="items">
           <div class="item">
-            <span class="item-text"><strong>Jumping away cancels old lookups</strong>When you jump to a new part of the feed, the lookups for posts you left are cancelled. The posts you land on are looked up after a short half second pause, without waiting out the cooldown, so a fast scroll does not send a request for every post it passes.</span>
+            <span class="item-text"><strong>Smarter Auto reveal</strong>Jump to a new part of the feed and the old lookups are cancelled, then the top post on screen is looked up first after a short pause. It also looks up two posts above and below, instead of one.</span>
           </div>
           <div class="item">
-            <span class="item-text"><strong>Refresh a result</strong>Every result pill now has a small refresh icon. Click it, or press Enter on the pill, to look that account up again without clearing all your saved results. If X does not answer, the old result stays. You can refresh an account every 2 seconds.</span>
-          </div>
-          <div class="item">
-            <span class="item-text"><strong>Neater globe for regions</strong>Places that are not a country, like a region, now show a small globe in a flag-sized chip, so it lines up with the flags.</span>
-          </div>
-          <div class="item">
-            <span class="item-text"><strong>Hidden locations</strong>When an account hides its location and app, the pill now says Hidden, with a lock and a coral color, instead of Not available after 10 seconds. The info card matches. It is saved like any other result, and it no longer counts as a failed lookup.</span>
-          </div>
-          <div class="item">
-            <span class="item-text"><strong>Top post goes first</strong>After a fast scroll, the waiting lookups are put in screen order again, so the top post on screen is next (Locating) and the rest say Queued.</span>
-          </div>
-          <div class="item">
-            <span class="item-text"><strong>Two posts ahead each way</strong>Auto reveal now also looks up the two posts just above and just below the ones on screen, instead of one.</span>
+            <span class="item-text"><strong>Neater globe</strong>Regions show a small globe in a flag-sized chip, so it lines up with the flags.</span>
           </div>
         </div>
       </div>
@@ -330,7 +334,7 @@
             <span class="item-text"><strong>The right flag for every country</strong>Flags now match the full country name, so Belarus no longer shows the US flag and Canada, Mexico and the Caribbean get their own flags. Over 250 countries and territories are covered, and accounts based in Europe get the EU flag.</span>
           </div>
           <div class="item">
-            <span class="item-text"><strong>Works with the keyboard</strong>You can Tab to the pin and result pills, press Enter or Space to use them, see where focus is, and screen readers now read out each button's name and the lookup result.</span>
+            <span class="item-text"><strong>Works with the keyboard</strong>You can Tab to the pin and result pills, see where focus is, and screen readers now read out each button's name and the lookup result.</span>
           </div>
           <div class="item">
             <span class="item-text"><strong>Flags stay private</strong>Country flags are now built into X-Ray instead of loaded from another website, so nobody else can see your IP address or which countries you look up.</span>
