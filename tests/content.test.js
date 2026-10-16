@@ -147,6 +147,14 @@ describe('createFlag', () => {
     }
   });
 
+  it('puts the globe in a flag-sized chip for places that are not countries, never for a country', () => {
+    for (const loc of ['South Asia', 'Atlantis', '', null]) {
+      expect(render(createFlag(loc)).querySelector('.xray-chip svg')).not.toBeNull();
+    }
+    expect(render(createFlag('India')).querySelector('.xray-chip')).toBeNull();
+    expect(render(createFlag('India')).querySelector('img.xray-flag')).not.toBeNull();
+  });
+
   it('never turns a location with quotes or tags into page code', () => {
     const el = render(createFlag('Japan" data-injected="yes <b>x</b>'));
     expect(el.querySelector('[data-injected], b')).toBeNull();
@@ -1757,6 +1765,8 @@ describe('info card display', () => {
     const platform = card().querySelectorAll('.xray-hover-value')[1];
     expect(platform.querySelector('img')).toBeNull();
     expect(platform.querySelector('.xray-globe')).not.toBeNull();
+    expect(platform.querySelector('.xray-chip')).not.toBeNull();
+    expect(card().querySelectorAll('.xray-hover-value')[0].querySelector('.xray-chip')).not.toBeNull();
   });
 
   it('still shows Unknown for a web account that has no location', async () => {

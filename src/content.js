@@ -2,6 +2,7 @@ const ICONS = {
   PIN: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17.5px; height:17.5px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`,
   GLOBE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`,
   REFRESH: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:11px; height:11px;"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg>`,
+  REGION: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:9px; height:9px;"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18"></path><path d="M12 3a14 14 0 0 0 0 18"></path></svg>`,
   LOCK: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13.5px; height:13.5px;"><rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`,
 };
 
@@ -148,6 +149,8 @@ function createBadge(markup, extraClass = '') {
 }
 
 const createGlobe = () => createBadge(ICONS.GLOBE);
+// What stands where a flag would, for a place that is not a country: the size of a flag, with a small globe in it.
+const createRegionChip = () => createBadge(ICONS.REGION, 'xray-chip');
 const createLock = () => createBadge(ICONS.LOCK, 'xray-lock');
 
 // The part of a result pill that looks the account up again. A click on it is told apart from a click on the pill.
@@ -170,7 +173,7 @@ function createFlagImage(code, alt) {
 
 function createFlag(locText) {
   const code = countryCode(locText);
-  return code ? createFlagImage(code, locText) : createGlobe();
+  return code ? createFlagImage(code, locText) : createRegionChip();
 }
 
 // Capturing group so split() keeps the platform names between the text parts.
@@ -1124,7 +1127,7 @@ function showHoverCard(btn, location, source) {
     createHoverRow('Based in', isHidden ? createLock() : createFlag(location), location || 'Unknown'),
     createHoverRow(
       'Platform',
-      store.code ? createFlagImage(store.code, store.name) : createGlobe(),
+      store.code ? createFlagImage(store.code, store.name) : createRegionChip(),
       sourcePlatform ? `${store.name || 'Unknown'} · ${sourcePlatform}` : 'Unknown'
     )
   );

@@ -228,6 +228,16 @@
   align-items: center;
 }
 
+.xray-chip {
+  justify-content: center;
+  width: 13.5px;
+  height: 10px;
+  box-sizing: border-box;
+  border-radius: var(--xray-radius-flag);
+  background: color-mix(in srgb, currentColor 22%, transparent);
+  border: 0.5px solid color-mix(in srgb, currentColor 50%, transparent);
+}
+
 .xray-source {
   opacity: 0.75;
   font-size: 9px;
@@ -522,6 +532,22 @@
 .xray-hover-card.hidden-location .xray-lock {
   color: var(--xray-hidden);
   opacity: 1;
+}
+
+.xray-hover-card .xray-chip {
+  width: 14.5px;
+  height: 11px;
+  color: var(--xray-accent);
+  opacity: 1;
+}
+
+.xray-hover-card.android-device .xray-chip {
+  color: var(--xray-android);
+}
+
+.xray-hover-card .xray-chip svg {
+  width: 9px;
+  height: 9px;
 }
 
 .xray-hover-card .xray-globe svg {
