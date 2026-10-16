@@ -107,6 +107,43 @@
     padding-bottom: 10px;
     border-bottom: 2px solid;
     border-image: linear-gradient(90deg, var(--accent), transparent) 1;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .release-header::-webkit-details-marker { display: none; }
+
+  .release-header:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .release-header::after {
+    content: "";
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-left: 2px;
+    border-right: 2px solid var(--text-3);
+    border-bottom: 2px solid var(--text-3);
+    transform: translateY(-3px) rotate(45deg);
+    transition: transform 0.15s ease;
+  }
+
+  .release[open] > .release-header::after { transform: translateY(1px) rotate(-135deg); }
+
+  .latest-tag {
+    margin-left: 10px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    border-radius: 999px;
   }
 
   .version-badge {
@@ -116,6 +153,7 @@
   }
 
   .release-date {
+    margin-left: auto;
     font-size: 13px;
     color: var(--text-3);
   }
@@ -138,17 +176,20 @@
 
   .section-title {
     display: inline-block;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--tone);
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 4px;
+    padding: 3px 11px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--tone) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
     margin-bottom: 8px;
   }
 
+
+  .items { padding-left: 8px; }
 
   .item {
     display: flex;
@@ -163,7 +204,7 @@
     height: 7px;
     margin-top: 7px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--tone);
   }
 
   .item-text {
@@ -174,41 +215,17 @@
   }
 
   .item-text strong {
+    display: block;
     font-size: 15px;
     color: #fff;
     font-weight: 650;
   }
 
-  .item-text strong::after {
-    content: ' - ';
-    font-weight: 400;
-    color: var(--text-2);
-  }
-
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 26px 0;
-  }
-
-  .footer {
-    font-size: 13px;
-    color: var(--text-3);
-    text-align: center;
-  }
-
-  .footer a {
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  .footer a:hover,
-  .footer a:focus-visible { text-decoration: underline; }
-
   @media (max-width: 520px) {
     body { padding: 24px 18px 48px; }
     .header { flex-wrap: wrap; }
     .header-links { margin-left: 0; justify-content: flex-start; }
+    .release-header { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -227,11 +244,11 @@
   </div>
 
   <!-- v2.1 -->
-  <div class="release">
-    <div class="release-header">
-      <span class="version-badge">v2.1</span>
+  <details class="release" open>
+    <summary class="release-header">
+      <span class="version-badge">v2.1<span class="latest-tag">Latest</span></span>
       <span class="release-date">Oct 16, 2026</span>
-    </div>
+    </summary>
     <p class="lede">Refresh a single result, see accounts with no public location, and a smarter Auto reveal.</p>
 
       <div class="section section-new">
@@ -257,14 +274,14 @@
           </div>
         </div>
       </div>
-  </div>
+  </details>
 
   <!-- v2.0 -->
-  <div class="release">
-    <div class="release-header">
+  <details class="release">
+    <summary class="release-header">
       <span class="version-badge">v2.0</span>
       <span class="release-date">Oct 16, 2026</span>
-    </div>
+    </summary>
     <p class="lede">A toolbar popup with Auto reveal, and many fixes for privacy, safety and stuck results. Needs Chrome, Edge or Brave 130 or newer.</p>
 
       <div class="section section-new">
@@ -335,14 +352,14 @@
           </div>
         </div>
       </div>
-  </div>
+  </details>
 
   <!-- v1.0 -->
-  <div class="release">
-    <div class="release-header">
+  <details class="release">
+    <summary class="release-header">
       <span class="version-badge">v1.0</span>
       <span class="release-date">Dec 3, 2025</span>
-    </div>
+    </summary>
     <p class="lede">First release.</p>
 
       <div class="section section-new">
@@ -362,13 +379,7 @@
           </div>
         </div>
       </div>
-  </div>
-
-  <hr class="divider">
-
-  <div class="footer">
-    <p>Enjoying X-Ray? <a href="https://ko-fi.com/thefoultarnished" target="_blank" rel="noopener noreferrer">Buy me a coffee</a></p>
-  </div>
+  </details>
 
 </div>
 </body>
